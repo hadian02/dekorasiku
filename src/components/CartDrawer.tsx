@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CartItem } from '../types';
 import { formatIDR } from '../data/products';
 import { X, Trash2, ShoppingBag, Gift, Tag, ArrowRight } from 'lucide-react';
@@ -31,6 +31,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const [promoInput, setPromoInput] = useState<string>('');
   const [promoFeedback, setPromoFeedback] = useState<{ text: string; error: boolean } | null>(null);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
@@ -53,17 +69,20 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
+        onTouchMove={(e) => e.preventDefault()}
+        aria-hidden="true"
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-[#FAF7F2] shadow-2xl border-l border-[#E8DFD5] flex flex-col justify-between">
+      {/* Drawer Container: Full width on mobile (no pl-10 push), capped at sm:max-w-md on desktop */}
+      <div className="fixed inset-y-0 right-0 flex max-w-full w-full sm:w-[440px] pointer-events-none">
+        <div className="pointer-events-auto w-full h-full bg-[#FAF7F2] shadow-2xl border-l border-[#E8DFD5] flex flex-col justify-between overscroll-contain">
           {/* Header */}
-          <div className="p-5 border-b border-[#E8DFD5] bg-white flex items-center justify-between">
+          <div className="p-4 sm:p-5 border-b border-[#E8DFD5] bg-white flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-[#8C533C]" />
-              <h2 className="font-serif text-lg font-bold text-[#2C221E]">
+              <h2 className="font-serif text-base sm:text-lg font-bold text-[#2C221E]">
                 Keranjang Belanja
               </h2>
               <span className="text-xs bg-[#F2EAE1] text-[#8C533C] font-bold px-2 py-0.5 rounded-full tabular-nums">
@@ -72,16 +91,23 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             </div>
 
             <button
+              type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-[#7A7067] hover:text-[#2C221E] hover:bg-[#F2EAE1] transition-colors"
+              className="p-2 rounded-lg text-[#7A7067] hover:text-[#2C221E] hover:bg-[#F2EAE1] transition-colors"
               aria-label="Tutup keranjang"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Cart Item List */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {/* Cart Item List - Smooth touch scrolling & overscroll containment */}
+          <div
+            className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 overscroll-contain"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              touchAction: 'pan-y'
+            }}
+          >
             {items.length === 0 ? (
               <div className="text-center py-16 space-y-3">
                 <div className="w-16 h-16 mx-auto rounded-full bg-[#F2EAE1] flex items-center justify-center text-[#8C533C]">
@@ -94,6 +120,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   Telusuri karya cangkir tembikar, baki jati, atau anyaman alami kami untuk menghangatkan rumah.
                 </p>
                 <button
+                  type="button"
                   onClick={onClose}
                   className="mt-3 px-5 py-2.5 bg-[#8C533C] text-white text-xs font-semibold rounded-lg hover:bg-[#73432F] transition-all"
                 >
@@ -121,29 +148,35 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     </div>
 
                     {/* Stepper & Trash */}
-                    <div className="mt-2 flex items-center justify-between">
-                      <div className="flex items-center border border-[#E8DFD5] rounded-md bg-[#FAF7F2] overflow-hidden">
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <div className="flex items-center border border-[#E8DFD5] rounded-md bg-[#FAF7F2] overflow-hidden shrink-0">
                         <button
+                          type="button"
                           onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                          className="px-2 py-0.5 text-xs text-[#574E47] hover:bg-[#E8DFD5]"
+                          className="px-2.5 py-1 text-xs text-[#574E47] hover:bg-[#E8DFD5] active:bg-[#D5C6B7]"
+                          aria-label="Kurangi jumlah"
                         >
                           -
                         </button>
-                        <span className="px-2 text-xs font-semibold tabular-nums font-mono">
+                        <span className="px-2.5 text-xs font-semibold tabular-nums font-mono">
                           {item.quantity}
                         </span>
                         <button
+                          type="button"
                           onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                          className="px-2 py-0.5 text-xs text-[#574E47] hover:bg-[#E8DFD5]"
+                          className="px-2.5 py-1 text-xs text-[#574E47] hover:bg-[#E8DFD5] active:bg-[#D5C6B7]"
+                          aria-label="Tambah jumlah"
                         >
                           +
                         </button>
                       </div>
 
                       <button
+                        type="button"
                         onClick={() => onRemoveItem(item.product.id)}
-                        className="text-[#A89F95] hover:text-[#B91C1C] p-1 transition-colors"
+                        className="text-[#A89F95] hover:text-[#B91C1C] p-1.5 rounded transition-colors shrink-0"
                         title="Hapus barang"
+                        aria-label={`Hapus ${item.product.name}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -156,13 +189,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             {/* Gift Wrapping Toggle Option */}
             {items.length > 0 && (
               <div className="p-3 bg-[#F2EAE1] rounded-xl border border-[#E0D5C9] flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <Gift className="w-5 h-5 text-[#8C533C] shrink-0" />
-                  <div>
-                    <div className="text-xs font-bold text-[#2C221E]">
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-[#2C221E] truncate">
                       Kemasan Kado Estetik & Kartu
                     </div>
-                    <div className="text-[11px] text-[#7A7067]">
+                    <div className="text-[11px] text-[#7A7067] line-clamp-2">
                       Kertas samson, tali rami, & ucapan tulis tangan (+Rp 15.000)
                     </div>
                   </div>
@@ -172,7 +205,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   type="checkbox"
                   checked={giftWrapping}
                   onChange={onToggleGiftWrapping}
-                  className="w-4 h-4 accent-[#8C533C] cursor-pointer rounded"
+                  className="w-4 h-4 accent-[#8C533C] cursor-pointer rounded shrink-0"
                 />
               </div>
             )}
@@ -181,19 +214,19 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             {items.length > 0 && (
               <div className="pt-2">
                 <form onSubmit={handlePromoSubmit} className="flex gap-2">
-                  <div className="relative flex-1">
+                  <div className="relative flex-1 min-w-0">
                     <Tag className="w-3.5 h-3.5 text-[#A89F95] absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       placeholder="Kode promo (coba: KRIYAHANGAT)"
                       value={promoInput}
                       onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-[#E8DFD5] rounded-lg focus:outline-none focus:border-[#8C533C] uppercase placeholder:normal-case font-mono"
+                      className="w-full pl-8 sm:pl-9 pr-2 py-2 text-xs bg-white border border-[#E8DFD5] rounded-lg focus:outline-none focus:border-[#8C533C] uppercase placeholder:normal-case font-mono"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="px-3 py-2 bg-[#2C221E] hover:bg-[#43352F] text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
+                    className="px-3 py-2 bg-[#2C221E] hover:bg-[#43352F] text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0"
                   >
                     Gunakan
                   </button>
@@ -219,7 +252,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
           {/* Footer Summary & Checkout CTA */}
           {items.length > 0 && (
-            <div className="p-5 border-t border-[#E8DFD5] bg-white space-y-3">
+            <div className="p-4 sm:p-5 border-t border-[#E8DFD5] bg-white space-y-3 shrink-0">
               <div className="space-y-1.5 text-xs text-[#7A7067]">
                 <div className="flex justify-between">
                   <span>Subtotal Produk</span>
@@ -255,6 +288,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </div>
 
               <button
+                type="button"
                 onClick={onProceedCheckout}
                 className="w-full py-3.5 bg-[#8C533C] hover:bg-[#73432F] active:scale-[0.98] text-white font-semibold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-2"
               >

@@ -45,11 +45,11 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onGalleryClick }) =>
             </div>
 
             {/* Quiet Curator Note */}
-            <div className="mt-8 pt-6 border-t border-[#E8DFD5] flex items-center gap-4 text-xs text-[#7A7067]">
+            <div className="mt-8 pt-6 border-t border-[#E8DFD5] flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-[#7A7067]">
               <span className="font-semibold text-[#2C221E]">420+ Karya Terkurasi</span>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true" className="hidden xs:inline">·</span>
               <span>18 Komunitas Pengrajin</span>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true" className="hidden xs:inline">·</span>
               <span>100% Kemasan Ramah Lingkungan</span>
             </div>
           </div>

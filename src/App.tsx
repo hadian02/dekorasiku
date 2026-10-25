@@ -210,6 +210,38 @@ export default function App() {
   // Toast Notification
   const [toastMessage, setToastMessage] = useState<{ text: string; icon?: 'check' | 'heart' } | null>(null);
 
+  // Ensure document body & html scroll styles are clean on initial mount
+  useEffect(() => {
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+    document.body.style.touchAction = '';
+  }, []);
+
+  // Lock body scroll whenever any drawer or modal is open to prevent background scrolling on mobile
+  const isAnyModalActive =
+    isCartOpen ||
+    isCheckoutOpen ||
+    isWishlistOpen ||
+    isAuthOpen ||
+    isProfileOpen ||
+    isOrdersModalOpen ||
+    selectedProduct !== null;
+
+  useEffect(() => {
+    if (isAnyModalActive) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
+  }, [isAnyModalActive]);
+
   // Sync Customer with LocalStorage
   useEffect(() => {
     try {
@@ -909,7 +941,7 @@ export default function App() {
 
   // Otherwise, render the Storefront
   return (
-    <div className="min-h-screen bg-[#FAF7F2] text-[#2C221E] font-sans flex flex-col selection:bg-[#DECBB7] selection:text-[#2C221E]">
+    <div className="min-h-screen bg-[#FAF7F2] text-[#2C221E] font-sans flex flex-col selection:bg-[#DECBB7] selection:text-[#2C221E] w-full max-w-full overflow-x-clip">
       {/* Google Maps Quota Warning Banner (if triggered) */}
       {quotaExceeded && (
         <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
@@ -929,12 +961,12 @@ export default function App() {
       )}
 
       {/* Top Banner Promotion */}
-      <div className="bg-[#2C221E] text-[#FAF7F2] text-xs py-2 px-4 text-center font-medium flex items-center justify-center gap-2">
+      <div className="bg-[#2C221E] text-[#FAF7F2] text-[11px] sm:text-xs py-2 px-3 sm:px-4 text-center font-medium flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 max-w-full overflow-hidden leading-tight">
         <span>Gunakan kode promo</span>
         <span className="font-mono bg-[#43352F] text-[#FAF7F2] px-1.5 py-0.5 rounded font-bold tracking-wide">
           KRIYAHANGAT
         </span>
-        <span>untuk diskon 10% · Gratis Ongkir se-Indonesia minimal Rp 350.000</span>
+        <span>diskon 10% · Gratis Ongkir min. Rp 350rb</span>
       </div>
 
       {/* 3-Zone Navbar */}
