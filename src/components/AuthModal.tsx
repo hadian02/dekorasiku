@@ -21,8 +21,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [mode, setMode] = useState<'login' | 'register'>('login');
   
   // Login form state
-  const [loginEmail, setLoginEmail] = useState('hadian02@gmail.com');
-  const [loginPassword, setLoginPassword] = useState('kriyabersahaja');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
   // Register form state
   const [regName, setRegName] = useState('');

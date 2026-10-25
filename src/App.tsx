@@ -392,6 +392,12 @@ export default function App() {
   };
 
   const handleAddToCart = (product: Product, quantity: number = 1) => {
+    if (!customer) {
+      showToast('Silakan masuk atau daftar akun terlebih dahulu untuk belanja', 'check');
+      setIsAuthOpen(true);
+      return;
+    }
+
     setCartItems((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -409,6 +415,12 @@ export default function App() {
   };
 
   const handleBuyNow = (product: Product, quantity: number = 1) => {
+    if (!customer) {
+      showToast('Silakan masuk atau daftar akun terlebih dahulu untuk belanja', 'check');
+      setIsAuthOpen(true);
+      return;
+    }
+
     handleAddToCart(product, quantity);
     setSelectedProduct(null);
     setIsCartOpen(false);
@@ -433,6 +445,12 @@ export default function App() {
   };
 
   const handleToggleWishlist = (productId: string) => {
+    if (!customer) {
+      showToast('Silakan masuk atau daftar akun untuk menyimpan karya favorit', 'heart');
+      setIsAuthOpen(true);
+      return;
+    }
+
     setWishlistIds((prev) => {
       const exists = prev.includes(productId);
       if (exists) {
@@ -1052,9 +1070,30 @@ export default function App() {
           ).length
         }
         customer={customer}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenWishlist={() => setIsWishlistOpen(true)}
-        onOpenOrders={() => setIsOrdersModalOpen(true)}
+        onOpenCart={() => {
+          if (!customer) {
+            showToast('Silakan masuk atau daftar akun terlebih dahulu untuk melihat keranjang', 'check');
+            setIsAuthOpen(true);
+          } else {
+            setIsCartOpen(true);
+          }
+        }}
+        onOpenWishlist={() => {
+          if (!customer) {
+            showToast('Silakan masuk atau daftar akun terlebih dahulu untuk melihat favorit', 'heart');
+            setIsAuthOpen(true);
+          } else {
+            setIsWishlistOpen(true);
+          }
+        }}
+        onOpenOrders={() => {
+          if (!customer) {
+            showToast('Silakan masuk untuk melihat riwayat pesanan Anda', 'check');
+            setIsAuthOpen(true);
+          } else {
+            setIsOrdersModalOpen(true);
+          }
+        }}
         onOpenChat={() => {
           setChatTargetOrderId(undefined);
           setIsChatOpen(true);
