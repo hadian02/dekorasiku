@@ -58,7 +58,7 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onGalleryClick }) =>
           <div className="lg:col-span-6 relative">
             <div className="relative rounded-2xl overflow-hidden border border-[#E5DACD] bg-[#F2ECE3] shadow-lg group">
               <img
-                src="/src/assets/images/hero_artisanal_studio_1792844458806.jpg"
+                src="/assets/images/hero_artisanal_studio_1792844458806.jpg"
                 alt="Suasana studio pembuatan tembikar dan kerajinan tangan hangat"
                 className="w-full h-[360px] sm:h-[460px] object-cover transition-transform duration-700 group-hover:scale-[1.02]"
                 referrerPolicy="no-referrer"

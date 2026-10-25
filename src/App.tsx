@@ -91,7 +91,7 @@ export default function App() {
   const [orders, setOrders] = useState<OrderDetails[]>(() => {
     try {
       const saved = localStorage.getItem('kala_kriya_orders');
-      return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+      return saved ? JSON.parse(saved.replaceAll('/src/assets/images/', '/assets/images/')) : INITIAL_ORDERS;
     } catch {
       return INITIAL_ORDERS;
     }
@@ -131,7 +131,7 @@ export default function App() {
   const [proposals, setProposals] = useState<ArtisanProposal[]>(() => {
     try {
       const saved = localStorage.getItem('kala_kriya_proposals');
-      return saved ? JSON.parse(saved) : INITIAL_PROPOSALS;
+      return saved ? JSON.parse(saved.replaceAll('/src/assets/images/', '/assets/images/')) : INITIAL_PROPOSALS;
     } catch {
       return INITIAL_PROPOSALS;
     }
@@ -162,7 +162,8 @@ export default function App() {
     try {
       const saved = localStorage.getItem('kala_kriya_published_products');
       if (saved) {
-        const extra: Product[] = JSON.parse(saved);
+        const sanitized = saved.replaceAll('/src/assets/images/', '/assets/images/');
+        const extra: Product[] = JSON.parse(sanitized);
         return [...extra, ...PRODUCTS];
       }
       return PRODUCTS;
@@ -175,7 +176,11 @@ export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem('kala_kriya_cart');
-      return saved ? JSON.parse(saved) : [];
+      if (saved) {
+        const sanitized = saved.replaceAll('/src/assets/images/', '/assets/images/');
+        return JSON.parse(sanitized);
+      }
+      return [];
     } catch {
       return [];
     }
@@ -215,6 +220,24 @@ export default function App() {
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
     document.body.style.touchAction = '';
+
+    // Automatically migrate any legacy /src/assets/images paths in user's browser localStorage
+    try {
+      const keys = [
+        'kala_kriya_published_products',
+        'kala_kriya_cart',
+        'kala_kriya_proposals',
+        'kala_kriya_orders',
+      ];
+      keys.forEach((key) => {
+        const val = localStorage.getItem(key);
+        if (val && val.includes('/src/assets/images/')) {
+          localStorage.setItem(key, val.replaceAll('/src/assets/images/', '/assets/images/'));
+        }
+      });
+    } catch {
+      // ignore
+    }
   }, []);
 
   // Lock body scroll whenever any drawer or modal is open to prevent background scrolling on mobile

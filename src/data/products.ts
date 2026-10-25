@@ -8,10 +8,10 @@ export const PRODUCTS: Product[] = [
     categoryLabel: 'Keramik & Tembikar',
     price: 185000,
     originalPrice: 210000,
-    image: '/src/assets/images/product_ceramic_mug_1792844459730.jpg',
+    image: '/assets/images/product_ceramic_mug_1792844459730.jpg',
     secondaryImages: [
-      '/src/assets/images/product_ceramic_mug_1792844459730.jpg',
-      '/src/assets/images/hero_artisanal_studio_1792844458806.jpg'
+      '/assets/images/product_ceramic_mug_1792844459730.jpg',
+      '/assets/images/hero_artisanal_studio_1792844458806.jpg'
     ],
     artisan: {
       name: 'Wayan Sujana',
@@ -34,10 +34,10 @@ export const PRODUCTS: Product[] = [
     categoryLabel: 'Anyaman & Serat Alami',
     price: 245000,
     originalPrice: 275000,
-    image: '/src/assets/images/product_woven_basket_1792844459724.jpg',
+    image: '/assets/images/product_woven_basket_1792844459724.jpg',
     secondaryImages: [
-      '/src/assets/images/product_woven_basket_1792844459724.jpg',
-      '/src/assets/images/hero_artisanal_studio_1792844458806.jpg'
+      '/assets/images/product_woven_basket_1792844459724.jpg',
+      '/assets/images/hero_artisanal_studio_1792844458806.jpg'
     ],
     artisan: {
       name: 'Ibu Ratna & Kelompok Penganyam',
@@ -59,10 +59,10 @@ export const PRODUCTS: Product[] = [
     category: 'kayu',
     categoryLabel: 'Kayu & Perabot Mini',
     price: 320000,
-    image: '/src/assets/images/product_teak_tray_1792844460545.jpg',
+    image: '/assets/images/product_teak_tray_1792844460545.jpg',
     secondaryImages: [
-      '/src/assets/images/product_teak_tray_1792844460545.jpg',
-      '/src/assets/images/hero_artisanal_studio_1792844458806.jpg'
+      '/assets/images/product_teak_tray_1792844460545.jpg',
+      '/assets/images/hero_artisanal_studio_1792844458806.jpg'
     ],
     artisan: {
       name: 'Pak Joko Santoso',
@@ -84,10 +84,10 @@ export const PRODUCTS: Product[] = [
     category: 'aromaterapi',
     categoryLabel: 'Aromaterapi & Lilin Kedelai',
     price: 195000,
-    image: '/src/assets/images/product_soy_candle_1792844460159.jpg',
+    image: '/assets/images/product_soy_candle_1792844460159.jpg',
     secondaryImages: [
-      '/src/assets/images/product_soy_candle_1792844460159.jpg',
-      '/src/assets/images/product_ceramic_mug_1792844459730.jpg'
+      '/assets/images/product_soy_candle_1792844460159.jpg',
+      '/assets/images/product_ceramic_mug_1792844459730.jpg'
     ],
     artisan: {
       name: 'Citra Kirana',
@@ -110,10 +110,10 @@ export const PRODUCTS: Product[] = [
     categoryLabel: 'Tekstil & Tenun',
     price: 365000,
     originalPrice: 410000,
-    image: '/src/assets/images/hero_artisanal_studio_1792844458806.jpg',
+    image: '/assets/images/hero_artisanal_studio_1792844458806.jpg',
     secondaryImages: [
-      '/src/assets/images/hero_artisanal_studio_1792844458806.jpg',
-      '/src/assets/images/product_woven_basket_1792844459724.jpg'
+      '/assets/images/hero_artisanal_studio_1792844458806.jpg',
+      '/assets/images/product_woven_basket_1792844459724.jpg'
     ],
     artisan: {
       name: 'Ibu Maryam',
@@ -135,10 +135,10 @@ export const PRODUCTS: Product[] = [
     category: 'keramik',
     categoryLabel: 'Keramik & Tembikar',
     price: 215000,
-    image: '/src/assets/images/product_ceramic_mug_1792844459730.jpg',
+    image: '/assets/images/product_ceramic_mug_1792844459730.jpg',
     secondaryImages: [
-      '/src/assets/images/product_ceramic_mug_1792844459730.jpg',
-      '/src/assets/images/product_teak_tray_1792844460545.jpg'
+      '/assets/images/product_ceramic_mug_1792844459730.jpg',
+      '/assets/images/product_teak_tray_1792844460545.jpg'
     ],
     artisan: {
       name: 'Wayan Sujana',

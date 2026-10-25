@@ -122,7 +122,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
   const [propCategory, setPropCategory] = useState<ArtisanProposal['category']>('keramik');
   const [propDesc, setPropDesc] = useState('');
   const [propPrice, setPropPrice] = useState(250000);
-  const [propImage, setPropImage] = useState('/src/assets/images/product_ceramic_mug_1792844459730.jpg');
+  const [propImage, setPropImage] = useState('/assets/images/product_ceramic_mug_1792844459730.jpg');
 
   // Active Proposal Chat Thread
   const [selectedProposalId, setSelectedProposalId] = useState<string>('prop-101');
@@ -136,7 +136,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
   const [pubMaterials, setPubMaterials] = useState('Tanah Liat Vulkanik, Glasir Abu Sekam');
   const [pubDimensions, setPubDimensions] = useState('Tinggi 16 cm, Diameter 14 cm (Kapasitas 650 ml)');
   const [pubCare, setPubCare] = useState('Cuci dengan sabun lembut, bilas air hangat, aman air panas 100°C.');
-  const [pubImage, setPubImage] = useState('/src/assets/images/product_ceramic_mug_1792844459730.jpg');
+  const [pubImage, setPubImage] = useState('/assets/images/product_ceramic_mug_1792844459730.jpg');
   const [pubShippingReguler, setPubShippingReguler] = useState(true);
   const [pubShippingKilat, setPubShippingKilat] = useState(true);
   const [pubShippingPeti, setPubShippingPeti] = useState(true);
@@ -346,7 +346,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
       officialName: pubOfficialName.trim(),
       finalPrice: Number(pubPrice),
       stock: Number(pubStock),
-      images: [pubImage, '/src/assets/images/hero_artisanal_studio_1792844458806.jpg'],
+      images: [pubImage, '/assets/images/hero_artisanal_studio_1792844458806.jpg'],
       materials: pubMaterials.split(',').map((m) => m.trim()),
       dimensions: pubDimensions.trim(),
       careGuide: pubCare.trim(),
@@ -1641,19 +1641,19 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
                   onChange={(e) => setPropImage(e.target.value)}
                   className="w-full px-3 py-2 text-xs bg-white border border-[#E8DFD5] rounded-lg focus:outline-none focus:border-[#8C533C]"
                 >
-                  <option value="/src/assets/images/product_ceramic_mug_1792844459730.jpg">
+                  <option value="/assets/images/product_ceramic_mug_1792844459730.jpg">
                     Cangkir / Teko Keramik Bintik (Studio Kasongan)
                   </option>
-                  <option value="/src/assets/images/product_woven_basket_1792844459724.jpg">
+                  <option value="/assets/images/product_woven_basket_1792844459724.jpg">
                     Keranjang Anyaman Serat Lamun (Pesisir)
                   </option>
-                  <option value="/src/assets/images/product_teak_tray_1792844460545.jpg">
+                  <option value="/assets/images/product_teak_tray_1792844460545.jpg">
                     Baki Saji Pahat Kayu Jati Solid
                   </option>
-                  <option value="/src/assets/images/product_soy_candle_1792844460159.jpg">
+                  <option value="/assets/images/product_soy_candle_1792844460159.jpg">
                     Lilin Kedelai Bejana Tembikar
                   </option>
-                  <option value="/src/assets/images/hero_artisanal_studio_1792844458806.jpg">
+                  <option value="/assets/images/hero_artisanal_studio_1792844458806.jpg">
                     Mangkok Saji & Meja Bengkel
                   </option>
                 </select>
