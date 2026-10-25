@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ArrowRight, Check, Hammer } from 'lucide-react';
+import { ArrowRight, Check, Hammer, ShieldCheck } from 'lucide-react';
 
 interface FooterProps {
   onOpenArtisanPortal?: () => void;
+  onOpenAdmin?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onOpenArtisanPortal }) => {
+export const Footer: React.FC<FooterProps> = ({ onOpenArtisanPortal, onOpenAdmin }) => {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
@@ -71,10 +72,22 @@ export const Footer: React.FC<FooterProps> = ({ onOpenArtisanPortal }) => {
                 <li className="pt-2 border-t border-white/10">
                   <button
                     onClick={onOpenArtisanPortal}
-                    className="text-[#D9C3B0] hover:text-white flex items-center gap-1.5 font-semibold transition-colors cursor-pointer"
+                    className="text-[#D9C3B0] hover:text-white flex items-center gap-1.5 font-semibold transition-colors cursor-pointer text-xs"
                   >
                     <Hammer className="w-3.5 h-3.5 text-[#8C533C]" />
                     <span>Portal Pengrajin (Log In & Penawaran)</span>
+                  </button>
+                </li>
+              )}
+              {onOpenAdmin && (
+                <li className="pt-1.5">
+                  <button
+                    onClick={onOpenAdmin}
+                    className="text-[#D9C3B0] hover:text-white flex items-center gap-1.5 font-semibold transition-colors cursor-pointer text-xs"
+                    title="Subdomain khusus: admin.dekorasiku.vercel.app"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Portal Administrator (admin.* Terproteksi)</span>
                   </button>
                 </li>
               )}

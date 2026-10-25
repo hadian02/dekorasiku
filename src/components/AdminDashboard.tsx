@@ -39,7 +39,8 @@ import {
   Calendar,
   XCircle,
   Phone,
-  Mail
+  Mail,
+  Lock
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -58,6 +59,7 @@ interface AdminDashboardProps {
   onProcessPayout: (payoutId: string) => void;
   onApproveArtisan?: (artisanId: string) => void;
   onRejectArtisan?: (artisanId: string) => void;
+  onAdminLogout?: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -76,6 +78,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onProcessPayout,
   onApproveArtisan,
   onRejectArtisan,
+  onAdminLogout,
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('orders');
   const [orderFilter, setOrderFilter] = useState<string>('all');
@@ -213,6 +216,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <ArrowLeft className="w-4 h-4" />
               <span>Kembali ke Toko</span>
             </button>
+            {onAdminLogout && (
+              <button
+                type="button"
+                onClick={onAdminLogout}
+                className="px-2.5 py-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-200 border border-red-800/40 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Kunci sesi administrator"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Kunci / Keluar</span>
+              </button>
+            )}
             <div className="h-6 w-px bg-white/20 hidden sm:block" />
             <div>
               <h1 className="font-serif text-lg font-bold tracking-tight">

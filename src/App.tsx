@@ -34,54 +34,63 @@ import { CustomerProfileModal } from './components/CustomerProfileModal';
 import { CustomerOrdersModal } from './components/CustomerOrdersModal';
 import { CustomerChatWidget } from './components/CustomerChatWidget';
 import { AdminDashboard } from './components/AdminDashboard';
+import { AdminAuthGate } from './components/AdminAuthGate';
 import { ArtisanPortal } from './components/ArtisanPortal';
 import { Footer } from './components/Footer';
 import { Check, Heart } from 'lucide-react';
 
-export default function App() {
-  // View mode: Storefront vs Admin Dashboard vs Artisan Portal
-  const [viewMode, setViewMode] = useState<'store' | 'admin' | 'artisan'>('store');
+// One-time cleanup of mock demo data for user testing (reset customers, artisans, orders, chats)
+const FRESH_TEST_KEY = 'kala_kriya_test_reset_v3_clean';
+if (typeof window !== 'undefined') {
+  try {
+    if (!localStorage.getItem(FRESH_TEST_KEY)) {
+      localStorage.removeItem('kala_kriya_active_customer');
+      localStorage.removeItem('kala_kriya_registered_users');
+      localStorage.removeItem('kala_kriya_orders');
+      localStorage.removeItem('kala_kriya_chats');
+      localStorage.removeItem('kala_kriya_registered_artisans');
+      localStorage.removeItem('kala_kriya_active_artisan');
+      localStorage.removeItem('kala_kriya_proposals');
+      localStorage.removeItem('kala_kriya_proposal_chats');
+      localStorage.removeItem('kala_kriya_payouts');
+      localStorage.removeItem('kala_kriya_cart');
+      localStorage.removeItem('kala_kriya_wishlist');
+      localStorage.removeItem('kala_kriya_published_products');
+      localStorage.setItem(FRESH_TEST_KEY, 'true');
+    }
+  } catch {
+    // ignore
+  }
+}
 
-  // Active Customer state with LocalStorage persistence
+export default function App() {
+  // Subdomain & Path Detection for Admin:
+  // Detects admin.dekorasiku.vercel.app, admin.localhost, /admin path, or ?admin=true
+  const isSubdomainAdmin = typeof window !== 'undefined' && (
+    window.location.hostname.toLowerCase().startsWith('admin.') ||
+    window.location.pathname.toLowerCase().startsWith('/admin') ||
+    window.location.search.includes('admin=true')
+  );
+
+  // View mode: Storefront vs Admin Dashboard vs Artisan Portal
+  const [viewMode, setViewMode] = useState<'store' | 'admin' | 'artisan'>(() => {
+    return isSubdomainAdmin ? 'admin' : 'store';
+  });
+
+  // Admin authentication state (password protected)
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('kala_kriya_admin_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Active Customer state: initially null (clean slate for testing)
   const [customer, setCustomer] = useState<Customer | null>(() => {
     try {
       const saved = localStorage.getItem('kala_kriya_active_customer');
-      if (saved) return JSON.parse(saved);
-      
-      const initialCustomer: Customer = {
-        id: 'cust-demo-1',
-        name: 'Hadian Santoso',
-        email: 'hadian02@gmail.com',
-        phone: '0812-3456-7890',
-        createdAt: new Date().toISOString(),
-        addresses: [
-          {
-            id: 'addr-demo-1',
-            label: 'Rumah Tinggal',
-            recipientName: 'Hadian Santoso',
-            phone: '0812-3456-7890',
-            address: 'Jl. Kaliurang Km 5.2 No. 18, Sleman',
-            city: 'Yogyakarta',
-            postalCode: '55281',
-            lat: -7.7588,
-            lng: 110.3804,
-            isDefault: true,
-          },
-          {
-            id: 'addr-demo-2',
-            label: 'Studio Kriya & Kerja',
-            recipientName: 'Hadian (Penerima Studio)',
-            phone: '0819-8765-4321',
-            address: 'Kawasan Sentra Gerabah Kasongan No. 42',
-            city: 'Bantul',
-            postalCode: '55184',
-            lat: -7.8427,
-            lng: 110.3346,
-            isDefault: false,
-          },
-        ],
-      };
-      return initialCustomer;
+      return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
     }
@@ -189,9 +198,9 @@ export default function App() {
   const [wishlistIds, setWishlistIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('kala_kriya_wishlist');
-      return saved ? JSON.parse(saved) : ['kriya-01'];
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return ['kriya-01'];
+      return [];
     }
   });
 
@@ -939,8 +948,31 @@ export default function App() {
     );
   }
 
-  // If in Admin mode, render the Admin Dashboard
+  // If in Admin mode, render AdminAuthGate (if not authenticated) or AdminDashboard
   if (viewMode === 'admin') {
+    if (!isAdminAuthenticated) {
+      return (
+        <AdminAuthGate
+          onAuthenticated={() => {
+            setIsAdminAuthenticated(true);
+            showToast('Berhasil masuk ke Panel Admin.', 'check');
+          }}
+          onBackToStore={
+            isSubdomainAdmin
+              ? () => {
+                  if (typeof window !== 'undefined' && window.location.hostname.startsWith('admin.')) {
+                    window.location.href = window.location.origin.replace('//admin.', '//');
+                  } else {
+                    setViewMode('store');
+                  }
+                }
+              : () => setViewMode('store')
+          }
+          isSubdomain={isSubdomainAdmin}
+        />
+      );
+    }
+
     return (
       <AdminDashboard
         orders={orders}
@@ -949,7 +981,17 @@ export default function App() {
         proposalChats={proposalChats}
         payouts={payouts}
         artisans={registeredArtisans}
-        onBackToStore={() => setViewMode('store')}
+        onBackToStore={
+          isSubdomainAdmin
+            ? () => {
+                if (typeof window !== 'undefined' && window.location.hostname.startsWith('admin.')) {
+                  window.location.href = window.location.origin.replace('//admin.', '//');
+                } else {
+                  setViewMode('store');
+                }
+              }
+            : () => setViewMode('store')
+        }
         onUpdateOrderStatus={handleUpdateOrderStatus}
         onVerifyPayment={handleVerifyPayment}
         onAdminSendMessage={handleAdminSendMessage}
@@ -958,6 +1000,11 @@ export default function App() {
         onProcessPayout={handleProcessPayout}
         onApproveArtisan={handleApproveArtisan}
         onRejectArtisan={handleRejectArtisan}
+        onAdminLogout={() => {
+          sessionStorage.removeItem('kala_kriya_admin_auth');
+          setIsAdminAuthenticated(false);
+          showToast('Sesi administrator telah dikunci.', 'check');
+        }}
       />
     );
   }
@@ -1014,7 +1061,13 @@ export default function App() {
         }}
         onOpenAuth={() => setIsAuthOpen(true)}
         onOpenProfile={() => setIsProfileOpen(true)}
-        onOpenAdmin={() => setViewMode('admin')}
+        onOpenAdmin={() => {
+          if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && !window.location.hostname.startsWith('admin.')) {
+            window.location.href = `https://admin.${window.location.host}`;
+          } else {
+            setViewMode('admin');
+          }
+        }}
         onOpenArtisanPortal={() => setViewMode('artisan')}
         artisan={artisan}
         onLogoutArtisan={() => {
@@ -1076,7 +1129,16 @@ export default function App() {
       />
 
       {/* Footer */}
-      <Footer onOpenArtisanPortal={() => setViewMode('artisan')} />
+      <Footer
+        onOpenArtisanPortal={() => setViewMode('artisan')}
+        onOpenAdmin={() => {
+          if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && !window.location.hostname.startsWith('admin.')) {
+            window.location.href = `https://admin.${window.location.host}`;
+          } else {
+            setViewMode('admin');
+          }
+        }}
+      />
 
       {/* Product Detail Modal */}
       <ProductDetailModal
