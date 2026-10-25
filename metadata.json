@@ -1,0 +1,6 @@
+{
+  "name": "Kala Kriya - Studio Kerajinan Tangan & Galeri Kriya",
+  "description": "Toko kerajinan tangan lokal nusantara dengan kurasi estetik yang hangat, galeri foto lookbook interaktif, dan keranjang belanja nyaman.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
