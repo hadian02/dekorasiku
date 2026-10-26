@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Product,
   CartItem,
@@ -277,6 +277,39 @@ export default function App() {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
       document.body.style.touchAction = '';
+    };
+  }, [isAnyModalActive]);
+
+  // Handle mobile browser and Android back button to close active modal instead of leaving website
+  const isHandlingPopState = useRef(false);
+
+  useEffect(() => {
+    if (!isAnyModalActive) return;
+
+    // Push dummy history entry so back button emits popstate instead of exiting site
+    window.history.pushState({ modalActive: true }, '');
+
+    const handlePopState = () => {
+      isHandlingPopState.current = true;
+      setIsCheckoutOpen(false);
+      setIsCartOpen(false);
+      setIsWishlistOpen(false);
+      setIsAuthOpen(false);
+      setIsProfileOpen(false);
+      setIsOrdersModalOpen(false);
+      setSelectedProduct(null);
+      setTimeout(() => {
+        isHandlingPopState.current = false;
+      }, 100);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      // If modal was closed by UI button (not popstate), pop the history entry to keep history clean
+      if (!isHandlingPopState.current && window.history.state?.modalActive) {
+        window.history.back();
+      }
     };
   }, [isAnyModalActive]);
 

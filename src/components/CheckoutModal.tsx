@@ -172,31 +172,32 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden"
       onClick={onClose}
     >
       <div
-        className="relative bg-[#FAF7F2] rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl border border-[#E8DFD5] my-auto max-h-[92vh] flex flex-col"
+        className="relative bg-[#FAF7F2] rounded-t-3xl sm:rounded-2xl max-w-3xl w-full shadow-2xl border border-[#E8DFD5] flex flex-col h-[92vh] sm:h-auto sm:max-h-[88vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8DFD5] bg-white">
+        <div className="shrink-0 flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[#E8DFD5] bg-white z-10">
           <div className="flex items-center gap-2">
-            <span className="font-serif text-lg font-bold text-[#2C221E]">
+            <span className="font-serif text-base sm:text-lg font-bold text-[#2C221E]">
               {step === 'form' ? 'Konfirmasi & Pengiriman Kriya' : 'Struk Pembelian Berhasil'}
             </span>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#7A7067] hover:text-[#2C221E] hover:bg-[#F2EAE1] transition-colors"
+            className="p-1.5 rounded-lg text-[#7A7067] hover:text-[#2C221E] hover:bg-[#F2EAE1] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 sm:p-8 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-7 overscroll-contain">
           {step === 'form' ? (
             <form onSubmit={handleSubmitOrder} className="space-y-6">
               {/* Customer Account Indicator */}
@@ -401,148 +402,160 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <span>2. Opsi Pengiriman Aman</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <label
-                    className={`p-3 rounded-lg border cursor-pointer transition-all flex flex-col justify-between ${
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShippingMethod('reguler')}
+                    className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col justify-between cursor-pointer select-none ${
                       shippingMethod === 'reguler'
-                        ? 'border-[#8C533C] bg-[#FDF9F6] shadow-xs'
-                        : 'border-[#E8DFD5] hover:bg-[#FAF7F2]'
+                        ? 'border-[#8C533C] bg-[#FDF9F6] ring-1.5 ring-[#8C533C] shadow-xs'
+                        : 'border-[#E8DFD5] bg-white hover:bg-[#FAF7F2]'
                     }`}
                   >
                     <div>
-                      <input
-                        type="radio"
-                        name="shipping"
-                        checked={shippingMethod === 'reguler'}
-                        onChange={() => setShippingMethod('reguler')}
-                        className="sr-only"
-                      />
-                      <div className="text-xs font-bold text-[#2C221E]">Reguler Kriya</div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[#2C221E]">Reguler Kriya</span>
+                        {shippingMethod === 'reguler' && (
+                          <span className="w-4 h-4 rounded-full bg-[#8C533C] text-white flex items-center justify-center shrink-0">
+                            <Check className="w-2.5 h-2.5" />
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] text-[#7A7067] mt-0.5">2-4 hari kerja</div>
                     </div>
                     <div className="text-xs font-mono font-semibold text-[#8C533C] mt-2">
                       {subtotal >= 350000 ? 'GRATIS ONGKIR' : formatIDR(18000)}
                     </div>
-                  </label>
+                  </button>
 
-                  <label
-                    className={`p-3 rounded-lg border cursor-pointer transition-all flex flex-col justify-between ${
+                  <button
+                    type="button"
+                    onClick={() => setShippingMethod('kilat')}
+                    className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col justify-between cursor-pointer select-none ${
                       shippingMethod === 'kilat'
-                        ? 'border-[#8C533C] bg-[#FDF9F6] shadow-xs'
-                        : 'border-[#E8DFD5] hover:bg-[#FAF7F2]'
+                        ? 'border-[#8C533C] bg-[#FDF9F6] ring-1.5 ring-[#8C533C] shadow-xs'
+                        : 'border-[#E8DFD5] bg-white hover:bg-[#FAF7F2]'
                     }`}
                   >
                     <div>
-                      <input
-                        type="radio"
-                        name="shipping"
-                        checked={shippingMethod === 'kilat'}
-                        onChange={() => setShippingMethod('kilat')}
-                        className="sr-only"
-                      />
-                      <div className="text-xs font-bold text-[#2C221E]">Kilat Prioritas</div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[#2C221E]">Kilat Prioritas</span>
+                        {shippingMethod === 'kilat' && (
+                          <span className="w-4 h-4 rounded-full bg-[#8C533C] text-white flex items-center justify-center shrink-0">
+                            <Check className="w-2.5 h-2.5" />
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] text-[#7A7067] mt-0.5">1-2 hari sampai</div>
                     </div>
                     <div className="text-xs font-mono font-semibold text-[#2C221E] mt-2">
                       {formatIDR(32000)}
                     </div>
-                  </label>
+                  </button>
 
-                  <label
-                    className={`p-3 rounded-lg border cursor-pointer transition-all flex flex-col justify-between ${
+                  <button
+                    type="button"
+                    onClick={() => setShippingMethod('kargo')}
+                    className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col justify-between cursor-pointer select-none ${
                       shippingMethod === 'kargo'
-                        ? 'border-[#8C533C] bg-[#FDF9F6] shadow-xs'
-                        : 'border-[#E8DFD5] hover:bg-[#FAF7F2]'
+                        ? 'border-[#8C533C] bg-[#FDF9F6] ring-1.5 ring-[#8C533C] shadow-xs'
+                        : 'border-[#E8DFD5] bg-white hover:bg-[#FAF7F2]'
                     }`}
                   >
                     <div>
-                      <input
-                        type="radio"
-                        name="shipping"
-                        checked={shippingMethod === 'kargo'}
-                        onChange={() => setShippingMethod('kargo')}
-                        className="sr-only"
-                      />
-                      <div className="text-xs font-bold text-[#2C221E]">Peti Kayu Khusus</div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[#2C221E]">Peti Kayu Khusus</span>
+                        {shippingMethod === 'kargo' && (
+                          <span className="w-4 h-4 rounded-full bg-[#8C533C] text-white flex items-center justify-center shrink-0">
+                            <Check className="w-2.5 h-2.5" />
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] text-[#7A7067] mt-0.5">Perlindungan ganda</div>
                     </div>
                     <div className="text-xs font-mono font-semibold text-[#2C221E] mt-2">
                       {formatIDR(45000)}
                     </div>
-                  </label>
+                  </button>
                 </div>
               </div>
 
               {/* Payment Method Options */}
-              <div className="bg-white p-5 rounded-xl border border-[#E8DFD5] space-y-3">
+              <div className="bg-white p-4 sm:p-5 rounded-xl border border-[#E8DFD5] space-y-3">
                 <div className="text-xs font-bold text-[#8C533C] uppercase tracking-wider flex items-center gap-1.5">
                   <CreditCard className="w-4 h-4" />
                   <span>3. Metode Pembayaran</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <label
-                    className={`p-3 rounded-lg border cursor-pointer transition-all flex items-center gap-3 ${
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('qris')}
+                    className={`w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer select-none ${
                       paymentMethod === 'qris'
-                        ? 'border-[#8C533C] bg-[#FDF9F6]'
-                        : 'border-[#E8DFD5] hover:bg-[#FAF7F2]'
+                        ? 'border-[#8C533C] bg-[#FDF9F6] ring-1.5 ring-[#8C533C] shadow-xs'
+                        : 'border-[#E8DFD5] bg-white hover:bg-[#FAF7F2]'
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === 'qris'}
-                      onChange={() => setPaymentMethod('qris')}
-                      className="sr-only"
-                    />
-                    <QrCode className="w-5 h-5 text-[#8C533C] shrink-0" />
-                    <div>
-                      <div className="text-xs font-bold text-[#2C221E]">QRIS Instan</div>
-                      <div className="text-[11px] text-[#7A7067]">BCA/GoPay/OVO/Dana</div>
+                    <div className="flex items-center gap-2.5">
+                      <QrCode className="w-5 h-5 text-[#8C533C] shrink-0" />
+                      <div>
+                        <div className="text-xs font-bold text-[#2C221E]">QRIS Instan</div>
+                        <div className="text-[10px] sm:text-[11px] text-[#7A7067]">BCA/GoPay/OVO/Dana</div>
+                      </div>
                     </div>
-                  </label>
+                    {paymentMethod === 'qris' && (
+                      <span className="w-4 h-4 rounded-full bg-[#8C533C] text-white flex items-center justify-center shrink-0">
+                        <Check className="w-2.5 h-2.5" />
+                      </span>
+                    )}
+                  </button>
 
-                  <label
-                    className={`p-3 rounded-lg border cursor-pointer transition-all flex items-center gap-3 ${
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('bca')}
+                    className={`w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer select-none ${
                       paymentMethod === 'bca'
-                        ? 'border-[#8C533C] bg-[#FDF9F6]'
-                        : 'border-[#E8DFD5] hover:bg-[#FAF7F2]'
+                        ? 'border-[#8C533C] bg-[#FDF9F6] ring-1.5 ring-[#8C533C] shadow-xs'
+                        : 'border-[#E8DFD5] bg-white hover:bg-[#FAF7F2]'
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === 'bca'}
-                      onChange={() => setPaymentMethod('bca')}
-                      className="sr-only"
-                    />
-                    <CreditCard className="w-5 h-5 text-[#8C533C] shrink-0" />
-                    <div>
-                      <div className="text-xs font-bold text-[#2C221E]">Transfer Virtual</div>
-                      <div className="text-[11px] text-[#7A7067]">BCA / Mandiri / BNI</div>
+                    <div className="flex items-center gap-2.5">
+                      <CreditCard className="w-5 h-5 text-[#8C533C] shrink-0" />
+                      <div>
+                        <div className="text-xs font-bold text-[#2C221E]">Transfer Virtual</div>
+                        <div className="text-[10px] sm:text-[11px] text-[#7A7067]">BCA / Mandiri / BNI</div>
+                      </div>
                     </div>
-                  </label>
+                    {paymentMethod === 'bca' && (
+                      <span className="w-4 h-4 rounded-full bg-[#8C533C] text-white flex items-center justify-center shrink-0">
+                        <Check className="w-2.5 h-2.5" />
+                      </span>
+                    )}
+                  </button>
 
-                  <label
-                    className={`p-3 rounded-lg border cursor-pointer transition-all flex items-center gap-3 ${
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('cod')}
+                    className={`w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer select-none ${
                       paymentMethod === 'cod'
-                        ? 'border-[#8C533C] bg-[#FDF9F6]'
-                        : 'border-[#E8DFD5] hover:bg-[#FAF7F2]'
+                        ? 'border-[#8C533C] bg-[#FDF9F6] ring-1.5 ring-[#8C533C] shadow-xs'
+                        : 'border-[#E8DFD5] bg-white hover:bg-[#FAF7F2]'
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === 'cod'}
-                      onChange={() => setPaymentMethod('cod')}
-                      className="sr-only"
-                    />
-                    <Banknote className="w-5 h-5 text-[#8C533C] shrink-0" />
-                    <div>
-                      <div className="text-xs font-bold text-[#2C221E]">Bayar di Tempat</div>
-                      <div className="text-[11px] text-[#7A7067]">COD Saat Sampai</div>
+                    <div className="flex items-center gap-2.5">
+                      <Banknote className="w-5 h-5 text-[#8C533C] shrink-0" />
+                      <div>
+                        <div className="text-xs font-bold text-[#2C221E]">Bayar di Tempat</div>
+                        <div className="text-[10px] sm:text-[11px] text-[#7A7067]">COD Saat Sampai</div>
+                      </div>
                     </div>
-                  </label>
+                    {paymentMethod === 'cod' && (
+                      <span className="w-4 h-4 rounded-full bg-[#8C533C] text-white flex items-center justify-center shrink-0">
+                        <Check className="w-2.5 h-2.5" />
+                      </span>
+                    )}
+                  </button>
                 </div>
               </div>
 
