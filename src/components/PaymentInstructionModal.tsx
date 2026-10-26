@@ -399,6 +399,25 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
                 <div className="font-semibold text-[#2C221E]">{order.customerName}</div>
                 <div className="text-[11px] text-[#7A7067]">{order.address}, {order.city}</div>
               </div>
+
+              {order.paymentStatus === 'menunggu_pembayaran' && onVerifyPayment && (
+                <div className="pt-2 border-t border-[#F2ECE3]">
+                  <button
+                    type="button"
+                    disabled={isProcessingSim}
+                    onClick={() => handleSimulatePayment('manual')}
+                    className="w-full py-3 bg-[#3A4D39] hover:bg-[#2C3B2B] text-white font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                    <span>
+                      {isProcessingSim ? 'Memproses Pesanan...' : 'Konfirmasi Pesanan COD Sekarang'}
+                    </span>
+                  </button>
+                  <p className="text-[10px] text-center text-[#7A7067] mt-1.5">
+                    Klik untuk menyelesaikan pesanan COD dan memasukkannya ke antrean pengrajin.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

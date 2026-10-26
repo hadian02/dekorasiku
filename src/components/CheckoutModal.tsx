@@ -12,7 +12,7 @@ interface CheckoutModalProps {
   appliedPromo: string;
   customer: Customer | null;
   onClose: () => void;
-  onOrderSuccess: (order: OrderDetails) => void;
+  onProceedToPayment: (pendingOrder: OrderDetails) => void;
   onOpenAuth: () => void;
 }
 
@@ -23,7 +23,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   appliedPromo,
   customer,
   onClose,
-  onOrderSuccess,
+  onProceedToPayment,
   onOpenAuth,
 }) => {
   const [step, setStep] = useState<'form' | 'success'>('form');
@@ -146,20 +146,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       coordinates: coords,
     };
 
-    setCompletedOrder(newOrder);
-    setStep('success');
-    onOrderSuccess(newOrder);
-
-    try {
-      confetti({
-        particleCount: 80,
-        spread: 60,
-        origin: { y: 0.6 },
-        colors: ['#8C533C', '#D9C3B0', '#F5EFEB', '#3A4D39'],
-      });
-    } catch {
-      // ignore
-    }
+    // Directly direct customer to payment instructions/gateway
+    onProceedToPayment(newOrder);
   };
 
   const handleCopyInvoice = () => {

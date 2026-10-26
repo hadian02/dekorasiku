@@ -32,6 +32,7 @@ import { WishlistModal } from './components/WishlistModal';
 import { AuthModal } from './components/AuthModal';
 import { CustomerProfileModal } from './components/CustomerProfileModal';
 import { CustomerOrdersModal } from './components/CustomerOrdersModal';
+import { PaymentInstructionModal } from './components/PaymentInstructionModal';
 import { CustomerChatWidget } from './components/CustomerChatWidget';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AdminAuthGate } from './components/AdminAuthGate';
@@ -220,6 +221,7 @@ export default function App() {
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
   const [isOrdersModalOpen, setIsOrdersModalOpen] = useState<boolean>(false);
+  const [pendingPaymentOrder, setPendingPaymentOrder] = useState<OrderDetails | null>(null);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [chatTargetOrderId, setChatTargetOrderId] = useState<string | undefined>(undefined);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -263,6 +265,7 @@ export default function App() {
     isAuthOpen ||
     isProfileOpen ||
     isOrdersModalOpen ||
+    pendingPaymentOrder !== null ||
     selectedProduct !== null;
 
   useEffect(() => {
@@ -292,6 +295,7 @@ export default function App() {
     const handlePopState = () => {
       isHandlingPopState.current = true;
       setIsCheckoutOpen(false);
+      setPendingPaymentOrder(null);
       setIsCartOpen(false);
       setIsWishlistOpen(false);
       setIsAuthOpen(false);
@@ -540,13 +544,10 @@ export default function App() {
     setIsCheckoutOpen(true);
   };
 
-  // Called when customer creates an order
-  const handleOrderSuccess = (newOrder: OrderDetails) => {
-    setOrders((prev) => [newOrder, ...prev]);
-    setCartItems([]);
-    setGiftWrapping(false);
-    setAppliedPromo('');
-    showToast('Pesanan berhasil dibuat & masuk ke antrean studio!', 'check');
+  // Called when customer confirms checkout: directly opens payment instructions
+  const handleProceedToPayment = (pendingOrder: OrderDetails) => {
+    setIsCheckoutOpen(false);
+    setPendingPaymentOrder(pendingOrder);
   };
 
   const handleLoginSuccess = (loggedInCustomer: Customer) => {
@@ -689,6 +690,41 @@ export default function App() {
       minute: '2-digit',
     });
 
+    // Check if this payment is for newly placed pending order from checkout
+    if (pendingPaymentOrder && pendingPaymentOrder.orderId === orderId) {
+      const paidOrder: OrderDetails = {
+        ...pendingPaymentOrder,
+        paymentStatus: mode === 'otomatis' ? 'terverifikasi_otomatis' : 'terverifikasi_manual',
+        orderStatus: 'diproses',
+        verifiedAt: `${time} (${mode === 'otomatis' ? 'QRIS Webhook Gateway' : 'Verifikasi Bank / COD'})`,
+      };
+
+      // Add to list of orders ("Setelah dibayar baru masuk ke list Pesanan")
+      setOrders((prev) => [paidOrder, ...prev]);
+      setCartItems([]);
+      setGiftWrapping(false);
+      setAppliedPromo('');
+
+      if (customer) {
+        try {
+          localStorage.removeItem(`kala_kriya_cart_${customer.id}`);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      setPendingPaymentOrder(null);
+      showToast(
+        mode === 'otomatis'
+          ? `Pembayaran QRIS #${orderId} lunas! Pesanan masuk ke daftar pesanan.`
+          : `Pesanan #${orderId} berhasil dikonfirmasi dan masuk ke daftar pesanan!`,
+        'check'
+      );
+      setIsOrdersModalOpen(true);
+      return;
+    }
+
+    // Otherwise update existing order in orders list
     setOrders((prev) =>
       prev.map((o) =>
         o.orderId === orderId
@@ -1323,9 +1359,27 @@ export default function App() {
         appliedPromo={appliedPromo}
         customer={customer}
         onClose={() => setIsCheckoutOpen(false)}
-        onOrderSuccess={handleOrderSuccess}
+        onProceedToPayment={handleProceedToPayment}
         onOpenAuth={() => setIsAuthOpen(true)}
       />
+
+      {/* Standalone Payment Instruction & Gateway Modal for new checkout */}
+      {pendingPaymentOrder && (
+        <PaymentInstructionModal
+          isOpen={pendingPaymentOrder !== null}
+          order={pendingPaymentOrder}
+          onClose={() => {
+            setPendingPaymentOrder(null);
+            showToast('Pembayaran ditunda. Keranjang belanja Anda tetap aman tersimpan.', 'check');
+          }}
+          onVerifyPayment={handleVerifyPayment}
+          onOpenChatWithOrder={(orderId) => {
+            setPendingPaymentOrder(null);
+            setChatTargetOrderId(orderId);
+            setIsChatOpen(true);
+          }}
+        />
+      )}
 
       {/* Saved Wishlist Modal */}
       <WishlistModal
