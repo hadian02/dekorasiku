@@ -15,8 +15,10 @@ import {
   ArrowRight,
   ShieldCheck,
   Check,
-  Copy
+  Copy,
+  CreditCard
 } from 'lucide-react';
+import { PaymentInstructionModal } from './PaymentInstructionModal';
 
 interface CustomerOrdersModalProps {
   isOpen: boolean;
@@ -26,6 +28,7 @@ interface CustomerOrdersModalProps {
   onOpenChatWithOrder: (orderId: string) => void;
   onExploreProducts: () => void;
   onConfirmReceipt?: (orderId: string) => void;
+  onVerifyPayment?: (orderId: string, mode: 'otomatis' | 'manual') => void;
 }
 
 export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
@@ -36,8 +39,10 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
   onOpenChatWithOrder,
   onExploreProducts,
   onConfirmReceipt,
+  onVerifyPayment,
 }) => {
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -63,6 +68,10 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
     if (status === 'selesai') return 4;
     return 2;
   };
+
+  const activePayingOrder = payingOrderId
+    ? orders.find((o) => o.orderId === payingOrderId) || null
+    : null;
 
   return (
     <div
@@ -162,34 +171,41 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
 
                     <div className="flex items-center gap-2">
                       {/* Payment Status Badge */}
-                      <span
-                        className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1 ${
-                          order.paymentStatus === 'terverifikasi_otomatis'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : order.paymentStatus === 'terverifikasi_manual'
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}
-                      >
-                        {order.paymentStatus === 'terverifikasi_otomatis' && (
-                          <>
-                            <Zap className="w-3 h-3" />
-                            <span>QRIS Lunas Otomatis</span>
-                          </>
-                        )}
-                        {order.paymentStatus === 'terverifikasi_manual' && (
-                          <>
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>Lunas Terverifikasi</span>
-                          </>
-                        )}
-                        {order.paymentStatus === 'menunggu_pembayaran' && (
-                          <>
-                            <Clock className="w-3 h-3" />
-                            <span>Menunggu Pembayaran</span>
-                          </>
-                        )}
-                      </span>
+                      {order.paymentStatus === 'menunggu_pembayaran' ? (
+                        <button
+                          type="button"
+                          onClick={() => setPayingOrderId(order.orderId)}
+                          className="group text-[11px] px-3 py-1 rounded-full font-semibold flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 transition-all shadow-xs cursor-pointer active:scale-95 hover:border-amber-400"
+                          title="Klik untuk membuka instruksi & melakukan pembayaran"
+                        >
+                          <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                          <span>Menunggu Pembayaran</span>
+                          <span className="text-[10px] bg-amber-200/90 text-amber-900 px-1.5 py-0.5 rounded font-bold group-hover:bg-amber-300 transition-colors">
+                            Bayar &rarr;
+                          </span>
+                        </button>
+                      ) : (
+                        <span
+                          className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1 ${
+                            order.paymentStatus === 'terverifikasi_otomatis'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}
+                        >
+                          {order.paymentStatus === 'terverifikasi_otomatis' && (
+                            <>
+                              <Zap className="w-3 h-3" />
+                              <span>QRIS Lunas Otomatis</span>
+                            </>
+                          )}
+                          {order.paymentStatus === 'terverifikasi_manual' && (
+                            <>
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>Lunas Terverifikasi</span>
+                            </>
+                          )}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -367,17 +383,30 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
                       <span className="text-[11px] text-[#7A7067]">({order.paymentMethod.split(' ')[0]})</span>
                     </div>
 
-                    {/* Direct Chat Button with this Order */}
-                    <button
-                      onClick={() => {
-                        onClose();
-                        onOpenChatWithOrder(order.orderId);
-                      }}
-                      className="px-3.5 py-2 bg-[#2C221E] hover:bg-[#8C533C] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-xs"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5 text-[#D9C3B0]" />
-                      <span>Chat Studio tentang Pesanan Ini</span>
-                    </button>
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                      {order.paymentStatus === 'menunggu_pembayaran' && (
+                        <button
+                          type="button"
+                          onClick={() => setPayingOrderId(order.orderId)}
+                          className="flex-1 sm:flex-none px-4 py-2 bg-gradient-to-r from-[#8C533C] to-[#A05C42] hover:from-[#76422F] hover:to-[#8C533C] text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer ring-2 ring-[#8C533C]/20"
+                        >
+                          <CreditCard className="w-3.5 h-3.5" />
+                          <span>Bayar Sekarang</span>
+                        </button>
+                      )}
+
+                      {/* Direct Chat Button with this Order */}
+                      <button
+                        onClick={() => {
+                          onClose();
+                          onOpenChatWithOrder(order.orderId);
+                        }}
+                        className="flex-1 sm:flex-none px-3.5 py-2 bg-[#2C221E] hover:bg-[#8C533C] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 text-[#D9C3B0]" />
+                        <span>Chat Studio</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -400,6 +429,21 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Embedded Payment Instruction Gateway Modal */}
+      {activePayingOrder && (
+        <PaymentInstructionModal
+          isOpen={activePayingOrder !== null}
+          order={activePayingOrder}
+          onClose={() => setPayingOrderId(null)}
+          onVerifyPayment={onVerifyPayment}
+          onOpenChatWithOrder={(orderId) => {
+            setPayingOrderId(null);
+            onClose();
+            onOpenChatWithOrder(orderId);
+          }}
+        />
+      )}
     </div>
   );
 };

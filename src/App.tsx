@@ -1373,6 +1373,7 @@ export default function App() {
           el?.scrollIntoView({ behavior: 'smooth' });
         }}
         onConfirmReceipt={handleConfirmOrderReceipt}
+        onVerifyPayment={handleVerifyPayment}
       />
 
       {/* Warm Floating Toast Notification */}
