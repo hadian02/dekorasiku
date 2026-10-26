@@ -181,9 +181,12 @@ export default function App() {
     }
   });
 
-  // LocalStorage cart & wishlist persistence
+  // LocalStorage cart & wishlist persistence (only active when customer is logged in)
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     try {
+      const activeCustomer = localStorage.getItem('kala_kriya_active_customer');
+      if (!activeCustomer) return [];
+
       const saved = localStorage.getItem('kala_kriya_cart');
       if (saved) {
         const sanitized = saved.replaceAll('/src/assets/images/', '/assets/images/');
@@ -197,6 +200,9 @@ export default function App() {
 
   const [wishlistIds, setWishlistIds] = useState<string[]>(() => {
     try {
+      const activeCustomer = localStorage.getItem('kala_kriya_active_customer');
+      if (!activeCustomer) return [];
+
       const saved = localStorage.getItem('kala_kriya_wishlist');
       return saved ? JSON.parse(saved) : [];
     } catch {
@@ -305,23 +311,47 @@ export default function App() {
     }
   }, [chatMessages]);
 
-  // Sync Cart with LocalStorage
+  // Sync Cart with LocalStorage (only when customer is logged in)
   useEffect(() => {
     try {
-      localStorage.setItem('kala_kriya_cart', JSON.stringify(cartItems));
+      if (customer) {
+        localStorage.setItem('kala_kriya_cart', JSON.stringify(cartItems));
+        localStorage.setItem(`kala_kriya_cart_${customer.id}`, JSON.stringify(cartItems));
+      } else {
+        localStorage.removeItem('kala_kriya_cart');
+      }
     } catch (e) {
       console.error(e);
     }
-  }, [cartItems]);
+  }, [cartItems, customer]);
 
-  // Sync Wishlist with LocalStorage
+  // Sync Wishlist with LocalStorage (only when customer is logged in)
   useEffect(() => {
     try {
-      localStorage.setItem('kala_kriya_wishlist', JSON.stringify(wishlistIds));
+      if (customer) {
+        localStorage.setItem('kala_kriya_wishlist', JSON.stringify(wishlistIds));
+        localStorage.setItem(`kala_kriya_wishlist_${customer.id}`, JSON.stringify(wishlistIds));
+      } else {
+        localStorage.removeItem('kala_kriya_wishlist');
+      }
     } catch (e) {
       console.error(e);
     }
-  }, [wishlistIds]);
+  }, [wishlistIds, customer]);
+
+  // Enforce empty cart & wishlist when customer is not logged in
+  useEffect(() => {
+    if (!customer) {
+      if (cartItems.length > 0) setCartItems([]);
+      if (wishlistIds.length > 0) setWishlistIds([]);
+      try {
+        localStorage.removeItem('kala_kriya_cart');
+        localStorage.removeItem('kala_kriya_wishlist');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, [customer]);
 
   // Sync Registered Artisans with LocalStorage
   useEffect(() => {
@@ -488,13 +518,61 @@ export default function App() {
 
   const handleLoginSuccess = (loggedInCustomer: Customer) => {
     setCustomer(loggedInCustomer);
+
+    // Restore customer's saved personal cart & wishlist if they had any
+    try {
+      const userCartKey = `kala_kriya_cart_${loggedInCustomer.id}`;
+      const savedCart = localStorage.getItem(userCartKey);
+      if (savedCart) {
+        const sanitized = savedCart.replaceAll('/src/assets/images/', '/assets/images/');
+        setCartItems(JSON.parse(sanitized));
+      }
+
+      const userWishlistKey = `kala_kriya_wishlist_${loggedInCustomer.id}`;
+      const savedWishlist = localStorage.getItem(userWishlistKey);
+      if (savedWishlist) {
+        setWishlistIds(JSON.parse(savedWishlist));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
     showToast(`Selamat datang, ${loggedInCustomer.name}!`, 'check');
   };
 
   const handleLogout = () => {
+    // Save current items to customer's personal profile storage before clearing
+    if (customer) {
+      try {
+        localStorage.setItem(`kala_kriya_cart_${customer.id}`, JSON.stringify(cartItems));
+        localStorage.setItem(`kala_kriya_wishlist_${customer.id}`, JSON.stringify(wishlistIds));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     setCustomer(null);
+    setCartItems([]);
+    setWishlistIds([]);
+    setGiftWrapping(false);
+    setAppliedPromo('');
+
+    // Close any open customer drawers and modals
     setIsProfileOpen(false);
-    showToast('Berhasil keluar dari akun.', 'check');
+    setIsCartOpen(false);
+    setIsWishlistOpen(false);
+    setIsCheckoutOpen(false);
+    setIsOrdersModalOpen(false);
+
+    try {
+      localStorage.removeItem('kala_kriya_active_customer');
+      localStorage.removeItem('kala_kriya_cart');
+      localStorage.removeItem('kala_kriya_wishlist');
+    } catch (e) {
+      console.error(e);
+    }
+
+    showToast('Berhasil keluar dari akun. Keranjang dan favorit telah dikosongkan.', 'check');
   };
 
   // Chat message handlers
@@ -1113,6 +1191,7 @@ export default function App() {
           setArtisan(null);
           showToast('Keluar dari sesi pengrajin. Silakan login atau daftar akun baru.', 'check');
         }}
+        onLogoutCustomer={handleLogout}
         activeSection="koleksi"
       />
 

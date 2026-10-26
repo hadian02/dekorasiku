@@ -30,6 +30,7 @@ interface NavbarProps {
   onOpenAdmin: () => void;
   onOpenArtisanPortal: () => void;
   onLogoutArtisan?: () => void;
+  onLogoutCustomer?: () => void;
   activeSection: string;
 }
 
@@ -48,6 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAdmin,
   onOpenArtisanPortal,
   onLogoutArtisan,
+  onLogoutCustomer,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -176,18 +178,32 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Customer Auth / Profile Button */}
           {customer ? (
-            <button
-              onClick={onOpenProfile}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-[#2C221E] bg-white hover:bg-[#F2EAE1] rounded-lg border border-[#E8DFD5] transition-all whitespace-nowrap shrink-0"
-              title="Profil & Alamat Pengiriman"
-            >
-              <div className="w-5 h-5 rounded-full bg-[#8C533C] text-white flex items-center justify-center text-[10px] font-bold">
-                {customer.name.charAt(0).toUpperCase()}
-              </div>
-              <span className="max-w-[70px] truncate hidden lg:inline">
-                {customer.name.split(' ')[0]}
-              </span>
-            </button>
+            <div className="flex items-center bg-white rounded-lg border border-[#E8DFD5] p-0.5 shadow-2xs">
+              <button
+                onClick={onOpenProfile}
+                className="flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-[#2C221E] hover:bg-[#F2EAE1] rounded transition-all whitespace-nowrap shrink-0"
+                title="Profil & Alamat Pengiriman"
+              >
+                <div className="w-5 h-5 rounded-full bg-[#8C533C] text-white flex items-center justify-center text-[10px] font-bold">
+                  {customer.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="max-w-[70px] truncate hidden lg:inline">
+                  {customer.name.split(' ')[0]}
+                </span>
+              </button>
+              {onLogoutCustomer && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onLogoutCustomer();
+                  }}
+                  className="p-1 text-[#7A7067] hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                  title="Keluar dari Akun (Logout)"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           ) : (
             <button
               onClick={onOpenAuth}
@@ -366,18 +382,33 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* 5. Customer Profile / Login */}
             {customer ? (
-              <button
-                onClick={() => handleMobileAction(onOpenProfile)}
-                className="p-2.5 bg-white hover:bg-[#F2EAE1] rounded-xl border border-[#E8DFD5] flex items-center gap-2 text-left transition-colors"
-              >
-                <div className="w-5 h-5 rounded-full bg-[#8C533C] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
-                  {customer.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="truncate">
-                  <div className="text-xs font-bold text-[#2C221E] truncate">{customer.name}</div>
-                  <div className="text-[10px] text-[#7A7067]">Profil & Alamat</div>
-                </div>
-              </button>
+              <div className="p-2.5 bg-white rounded-xl border border-[#E8DFD5] flex items-center justify-between">
+                <button
+                  onClick={() => handleMobileAction(onOpenProfile)}
+                  className="flex items-center gap-2 text-left truncate flex-1"
+                >
+                  <div className="w-6 h-6 rounded-full bg-[#8C533C] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                    {customer.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="truncate">
+                    <div className="text-xs font-bold text-[#2C221E] truncate">{customer.name}</div>
+                    <div className="text-[10px] text-[#7A7067]">Profil & Alamat</div>
+                  </div>
+                </button>
+                {onLogoutCustomer && (
+                  <button
+                    onClick={() => {
+                      onLogoutCustomer();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="p-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1 font-semibold shrink-0"
+                    title="Keluar dari Akun"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span className="text-[11px]">Keluar</span>
+                  </button>
+                )}
+              </div>
             ) : (
               <button
                 onClick={() => handleMobileAction(onOpenAuth)}
