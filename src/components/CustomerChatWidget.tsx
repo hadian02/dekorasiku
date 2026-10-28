@@ -107,13 +107,13 @@ export const CustomerChatWidget: React.FC<CustomerChatWidgetProps> = ({
             <div className="flex items-center gap-3">
               <div className="relative">
                 <div className="w-9 h-9 rounded-full bg-[#8C533C] flex items-center justify-center font-serif font-bold text-sm text-[#FAF7F2]">
-                  KK
+                  DK
                 </div>
                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#2C221E]" />
               </div>
               <div>
                 <h3 className="font-serif text-sm font-bold leading-tight">
-                  Studio Kala Kriya
+                  Studio dekorasiku
                 </h3>
                 <p className="text-[11px] text-[#D9C3B0] flex items-center gap-1">
                   <span>Tim Kriya Sedang Online</span>

@@ -191,4 +191,4 @@ export interface ArtisanPayout {
   bankInfo: string;
 }
 
-export type AdminTab = 'orders' | 'payments' | 'chats' | 'proposals' | 'payouts' | 'artisans';
+export type AdminTab = 'orders' | 'payments' | 'chats' | 'proposals' | 'payouts' | 'artisans' | 'mitra_products';

@@ -1151,7 +1151,7 @@ export default function App() {
       id: `chat-${Date.now()}`,
       proposalId: newProposalId,
       sender: 'admin',
-      senderName: 'Kurator Kala Kriya',
+      senderName: 'Kurator dekorasiku',
       text: `Halo ${artisan?.name || 'Bapak/Ibu Pengrajin'}! Terima kasih telah mengajukan usulan karya "${data.title}". Tim kurasi studio kami sangat tertarik dan sedang memeriksa usulan harga ${formatIDR(data.proposedPrice)}. Mari diskusikan detailnya di sini sebelum disetujui.`,
       timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
     };
@@ -1178,7 +1178,7 @@ export default function App() {
       id: `chat-approve-${Date.now()}`,
       proposalId,
       sender: 'admin',
-      senderName: 'Atelier Kala Kriya (Admin)',
+      senderName: 'Atelier dekorasiku (Admin)',
       text: 'Selamat! Penawaran kriya ini telah DISETUJUI (APPROVED) oleh tim kurator. Kesepakatan harga dan spesifikasi telah tercapai. Silakan klik tombol "Input Rincian & Terbitkan" di dashboard pengrajin Anda untuk menginput foto resmi, stok, dan opsi pengiriman agar langsung tayang di katalog toko!',
       timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
     };
@@ -1192,7 +1192,7 @@ export default function App() {
       id: `chat-admin-${Date.now()}`,
       proposalId,
       sender: 'admin',
-      senderName: 'Atelier Kala Kriya (Admin)',
+      senderName: 'Atelier dekorasiku (Admin)',
       text,
       timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
     };
@@ -1228,7 +1228,7 @@ export default function App() {
         id: `chat-reply-${Date.now()}`,
         proposalId,
         sender: 'admin',
-        senderName: 'Kurator Kala Kriya',
+        senderName: 'Kurator dekorasiku',
         text: curatorResponse,
         timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
       };
@@ -1448,6 +1448,7 @@ export default function App() {
         proposalChats={proposalChats}
         payouts={payouts}
         artisans={registeredArtisans}
+        products={catalogProducts}
         onBackToStore={
           isSubdomainAdmin
             ? () => {

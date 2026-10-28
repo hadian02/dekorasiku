@@ -424,7 +424,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
               <span>Kembali ke Toko</span>
             </button>
             <div className="font-serif font-bold text-lg text-[#2C221E]">
-              Portal Mitra Pengrajin Kala Kriya
+              Portal Mitra Pengrajin dekorasiku
             </div>
           </div>
           <span className="text-xs text-[#8C533C] font-semibold tracking-wider uppercase hidden sm:inline">
@@ -621,7 +621,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
                       className="w-full px-3 py-2 text-xs bg-[#FAF7F2] border border-[#E8DFD5] rounded-lg focus:outline-none focus:border-[#8C533C]"
                     />
                     <p className="text-[10px] text-[#7A7067] mt-0.5">
-                      Alamat ini akan dikunjungi langsung oleh tim kurator Kala Kriya untuk inspeksi alat & mutu bahan.
+                      Alamat ini akan dikunjungi langsung oleh tim kurator dekorasiku untuk inspeksi alat & mutu bahan.
                     </p>
                   </div>
 
@@ -861,7 +861,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
             </div>
 
             <p className="text-xs sm:text-sm text-[#61574F] leading-relaxed">
-              Halo <strong>{artisan.name}</strong>, formulir pendaftaran mitra pengrajin Anda telah kami terima. Sesuai ketentuan kurasi studio Kala Kriya, <strong>SIGN IN pengrajin wajib diapprove oleh admin</strong> setelah tim kurator admin melakukan kunjungan verifikasi fisik langsung ke alamat workshop Anda untuk menjamin mutu dan keaslian karya kriya.
+              Halo <strong>{artisan.name}</strong>, formulir pendaftaran mitra pengrajin Anda telah kami terima. Sesuai ketentuan kurasi studio dekorasiku, <strong>SIGN IN pengrajin wajib diapprove oleh admin</strong> setelah tim kurator admin melakukan kunjungan verifikasi fisik langsung ke alamat workshop Anda untuk menjamin mutu dan keaslian karya kriya.
             </p>
           </div>
 
@@ -1056,7 +1056,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
         </main>
 
         <footer className="p-4 text-center text-xs text-[#7A7067] border-t border-[#E8DFD5]">
-          © {new Date().getFullYear()} Studio Kala Kriya — Kemitraan Kriya Berkeadilan
+          © {new Date().getFullYear()} Studio dekorasiku — Kemitraan Kriya Berkeadilan
         </footer>
       </div>
     );

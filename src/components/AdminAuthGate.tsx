@@ -109,7 +109,7 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
                 Portal Kurator & Administrator
               </span>
               <h1 className="font-serif text-2xl font-bold text-[#2C221E]">
-                Kala Kriya Atelier
+                dekorasiku Atelier
               </h1>
             </div>
             <p className="text-xs text-[#7A7067] max-w-xs mx-auto leading-relaxed">

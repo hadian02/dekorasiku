@@ -6,7 +6,8 @@ import {
   ArtisanProposal,
   ArtisanProposalChat,
   ArtisanPayout,
-  Artisan
+  Artisan,
+  Product
 } from '../types';
 import { formatIDR } from '../data/products';
 import {
@@ -40,7 +41,11 @@ import {
   XCircle,
   Phone,
   Mail,
-  Lock
+  Lock,
+  CalendarRange,
+  BarChart3,
+  Layers,
+  ChevronRight
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -50,6 +55,7 @@ interface AdminDashboardProps {
   proposalChats: ArtisanProposalChat[];
   payouts: ArtisanPayout[];
   artisans?: Artisan[];
+  products?: Product[];
   onBackToStore: () => void;
   onUpdateOrderStatus: (orderId: string, newStatus: OrderDetails['orderStatus']) => void;
   onConfirmOrderArtisan?: (orderId: string) => void;
@@ -71,6 +77,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   proposalChats,
   payouts,
   artisans = [],
+  products = [],
   onBackToStore,
   onUpdateOrderStatus,
   onConfirmOrderArtisan,
@@ -102,6 +109,96 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Artisan Verification Filter & Search State
   const [artisanFilter, setArtisanFilter] = useState<'all' | 'menunggu_verifikasi' | 'disetujui'>('all');
   const [searchArtisan, setSearchArtisan] = useState<string>('');
+
+  // Mitra Products & Omset View State
+  const [selectedMitraId, setSelectedMitraId] = useState<string>('all');
+  const [mitraDateRange, setMitraDateRange] = useState<'all' | 'today' | '7days' | '30days' | 'this_month' | 'custom'>('all');
+  const [customStartDate, setCustomStartDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [customEndDate, setCustomEndDate] = useState<string>(() => {
+    return new Date().toISOString().split('T')[0];
+  });
+  const [productSearchQuery, setProductSearchQuery] = useState<string>('');
+  const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>('all');
+
+  // Robust date parser for orders
+  const parseOrderDate = (order: OrderDetails): Date => {
+    if ((order as any).createdAt) {
+      const parsed = new Date((order as any).createdAt);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    if (order.date) {
+      const months: Record<string, string> = {
+        januari: '01', februari: '02', maret: '03', april: '04', mei: '05', juni: '06',
+        juli: '07', agustus: '08', september: '09', oktober: '10', november: '11', desember: '12',
+        jan: '01', feb: '02', mar: '03', apr: '04', jun: '06', jul: '07', agu: '08', sep: '09', okt: '10', nov: '11', des: '12'
+      };
+      const parts = order.date.toLowerCase().split(' ');
+      if (parts.length >= 3) {
+        const day = parts[0].padStart(2, '0');
+        const mStr = parts[1];
+        const year = parts[2];
+        const month = months[mStr] || '01';
+        const parsed = new Date(`${year}-${month}-${day}T00:00:00`);
+        if (!isNaN(parsed.getTime())) return parsed;
+      }
+      const direct = new Date(order.date);
+      if (!isNaN(direct.getTime())) return direct;
+    }
+    return new Date();
+  };
+
+  // Check if order date falls into the chosen date range
+  const isOrderInDateRange = (order: OrderDetails): boolean => {
+    if (mitraDateRange === 'all') return true;
+    const oDate = parseOrderDate(order);
+    const now = new Date();
+
+    if (mitraDateRange === 'today') {
+      return (
+        oDate.getFullYear() === now.getFullYear() &&
+        oDate.getMonth() === now.getMonth() &&
+        oDate.getDate() === now.getDate()
+      );
+    }
+    if (mitraDateRange === '7days') {
+      const cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return oDate >= cutoff;
+    }
+    if (mitraDateRange === '30days') {
+      const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      return oDate >= cutoff;
+    }
+    if (mitraDateRange === 'this_month') {
+      return (
+        oDate.getFullYear() === now.getFullYear() &&
+        oDate.getMonth() === now.getMonth()
+      );
+    }
+    if (mitraDateRange === 'custom') {
+      if (customStartDate) {
+        const s = new Date(customStartDate + 'T00:00:00');
+        if (oDate < s) return false;
+      }
+      if (customEndDate) {
+        const e = new Date(customEndDate + 'T23:59:59');
+        if (oDate > e) return false;
+      }
+      return true;
+    }
+    return true;
+  };
+
+  // Helper matching product to artisan
+  const checkProductBelongsToArtisan = (prod: Product, art: Artisan): boolean => {
+    if (prod.artisan?.id && prod.artisan.id === art.id) return true;
+    if (prod.artisan?.name && art.name && prod.artisan.name.toLowerCase() === art.name.toLowerCase()) return true;
+    if (prod.artisan?.workshopName && art.workshopName && prod.artisan.workshopName.toLowerCase() === art.workshopName.toLowerCase()) return true;
+    return false;
+  };
 
   // Calculations for KPI Cards & Badges
   const pendingArtisansCount = artisans.filter(
@@ -241,7 +338,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="h-6 w-px bg-white/20 hidden sm:block" />
             <div>
               <h1 className="font-serif text-lg font-bold tracking-tight">
-                Panel Admin Studio Kala Kriya
+                Panel Admin Studio dekorasiku
               </h1>
               <p className="text-[11px] text-[#D9C3B0] hidden sm:block">
                 Pesanan Masuk, QRIS, Chat Pelanggan, Kurasi Pengrajin & Escrow
@@ -353,6 +450,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   {artisans.length}
                 </span>
               )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('mitra_products')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
+                activeTab === 'mitra_products'
+                  ? 'bg-[#8C533C] text-white shadow-xs'
+                  : 'text-[#D9C3B0] hover:text-white'
+              }`}
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>Produk & Omset Mitra</span>
+              <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full tabular-nums">
+                {products.length} kriya
+              </span>
             </button>
           </nav>
         </div>
@@ -1000,7 +1112,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   >
                     <input
                       type="text"
-                      placeholder={`Balas sebagai Atelier Kala Kriya ke ${activeConversation.customerName}...`}
+                      placeholder={`Balas sebagai Atelier dekorasiku ke ${activeConversation.customerName}...`}
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
                       className="flex-1 px-3 py-2 text-xs bg-[#FAF7F2] border border-[#E8DFD5] rounded-xl focus:outline-none focus:border-[#8C533C]"
@@ -1627,15 +1739,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           )}
 
                           {artisan.approvalStatus === 'disetujui' && (
-                            <button
-                              onClick={() => {
-                                setActiveTab('proposals');
-                              }}
-                              className="px-3.5 py-2 bg-[#8C533C] hover:bg-[#73432F] text-white text-xs font-semibold rounded-lg shadow-xs transition-colors flex items-center gap-1.5"
-                            >
-                              <Hammer className="w-3.5 h-3.5" />
-                              <span>Lihat Penawaran Kriya</span>
-                            </button>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedMitraId(artisan.id);
+                                  setActiveTab('mitra_products');
+                                }}
+                                className="px-3.5 py-2 bg-[#2C221E] hover:bg-[#43352F] text-white text-xs font-bold rounded-lg shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <ShoppingBag className="w-3.5 h-3.5 text-[#E6C285]" />
+                                <span>Lihat Produk & Omset Mitra ➔</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveTab('proposals');
+                                }}
+                                className="px-3.5 py-2 bg-[#FAF7F2] hover:bg-[#F2EAE1] text-[#61574F] border border-[#E8DFD5] text-xs font-semibold rounded-lg shadow-xs transition-colors flex items-center gap-1.5"
+                              >
+                                <Hammer className="w-3.5 h-3.5 text-[#8C533C]" />
+                                <span>Penawaran Kriya</span>
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1646,6 +1773,580 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             )}
           </div>
         )}
+
+        {/* TAB: PRODUK & OMSET MITRA PENGRAJIN */}
+        {activeTab === 'mitra_products' && (() => {
+          // Calculate sales & omset for all products
+          const productsWithStats = products.map((prod) => {
+            let soldInPeriod = 0;
+            let allTimeSold = 0;
+
+            orders.forEach((ord) => {
+              if (
+                ord.paymentStatus === 'batal' ||
+                ord.paymentStatus === 'menunggu_pembayaran' ||
+                ord.orderStatus === 'dibatalkan'
+              ) {
+                return;
+              }
+
+              const isInPeriod = isOrderInDateRange(ord);
+              ord.items.forEach((it) => {
+                if (it.product.id === prod.id || it.product.name === prod.name) {
+                  allTimeSold += it.quantity;
+                  if (isInPeriod) {
+                    soldInPeriod += it.quantity;
+                  }
+                }
+              });
+            });
+
+            const omsetInPeriod = soldInPeriod * prod.price;
+            const allTimeOmset = allTimeSold * prod.price;
+
+            return {
+              ...prod,
+              soldInPeriod,
+              allTimeSold,
+              omsetInPeriod,
+              allTimeOmset
+            };
+          });
+
+          // Filter by selected artisan
+          const activeArtisan = artisans.find((a) => a.id === selectedMitraId);
+          const filteredByArtisan = selectedMitraId === 'all'
+            ? productsWithStats
+            : productsWithStats.filter((p) => activeArtisan && checkProductBelongsToArtisan(p, activeArtisan));
+
+          // Filter by search query
+          const filteredBySearch = filteredByArtisan.filter((p) => {
+            if (!productSearchQuery.trim()) return true;
+            const q = productSearchQuery.toLowerCase().trim();
+            const matchName = p.name.toLowerCase().includes(q);
+            const matchCode = p.productCode?.toLowerCase().includes(q);
+            const matchWorkshop = p.artisan.workshopName?.toLowerCase().includes(q);
+            const matchCat = p.categoryLabel.toLowerCase().includes(q);
+            const matchArtisan = p.artisan.name.toLowerCase().includes(q);
+            return matchName || matchCode || matchWorkshop || matchCat || matchArtisan;
+          });
+
+          // Filter by stock status
+          const finalProducts = filteredBySearch.filter((p) => {
+            if (stockStatusFilter === 'in_stock') return p.stock > 5;
+            if (stockStatusFilter === 'low_stock') return p.stock > 0 && p.stock <= 5;
+            if (stockStatusFilter === 'out_of_stock') return p.stock === 0;
+            return true;
+          });
+
+          // Aggregate KPIs for the current selection
+          const totalOmsetPeriod = filteredByArtisan.reduce((acc, p) => acc + p.omsetInPeriod, 0);
+          const totalUnitsSoldPeriod = filteredByArtisan.reduce((acc, p) => acc + p.soldInPeriod, 0);
+          const totalStockCount = filteredByArtisan.reduce((acc, p) => acc + p.stock, 0);
+          const totalOutStockCount = filteredByArtisan.filter((p) => p.stock === 0).length;
+
+          // Date range description text
+          const dateRangeLabel =
+            mitraDateRange === 'all'
+              ? 'Seluruh Waktu (All Time)'
+              : mitraDateRange === 'today'
+              ? 'Hari Ini'
+              : mitraDateRange === '7days'
+              ? '7 Hari Terakhir'
+              : mitraDateRange === '30days'
+              ? '30 Hari Terakhir'
+              : mitraDateRange === 'this_month'
+              ? 'Bulan Ini'
+              : `Rentang Kustom: ${customStartDate} s/d ${customEndDate}`;
+
+          return (
+            <div className="space-y-6">
+              {/* Header Title & Print Action */}
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E8DFD5] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-[#FAF7F2] text-[#8C533C] rounded-xl border border-[#E8DFD5]">
+                    <ShoppingBag className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="font-serif text-lg sm:text-xl font-bold text-[#2C221E]">
+                      Katalog Produk & Laporan Omset Mitra
+                    </h2>
+                    <p className="text-xs text-[#7A7067] mt-0.5">
+                      Pantau detail kriya per pengrajin, kode barang, ketersediaan stok fisik, unit terjual, dan akumulasi omset per jangka waktu.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start md:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-3.5 py-2 bg-[#FAF7F2] hover:bg-[#F2EAE1] text-[#2C221E] border border-[#E8DFD5] rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <BarChart3 className="w-4 h-4 text-[#8C533C]" />
+                    <span>Cetak / Ekspor Laporan</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Filter Section: Mitra Selector & Date Range Filter */}
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E8DFD5] shadow-xs space-y-5">
+                {/* 1. Mitra Selector */}
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <label className="text-xs font-bold text-[#2C221E] flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-[#8C533C]" />
+                      <span>Pilih Mitra Pengrajin:</span>
+                    </label>
+                    <span className="text-[11px] text-[#7A7067]">
+                      {selectedMitraId === 'all'
+                        ? 'Menampilkan ringkasan seluruh mitra'
+                        : `Mitra aktif: ${activeArtisan?.name} (${activeArtisan?.workshopName || 'Studio'})`}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMitraId('all')}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-2 ${
+                        selectedMitraId === 'all'
+                          ? 'bg-[#2C221E] text-white border-[#2C221E] shadow-xs'
+                          : 'bg-[#FAF7F2] text-[#61574F] border-[#E8DFD5] hover:bg-white hover:text-[#2C221E]'
+                      }`}
+                    >
+                      <span>Semua Mitra</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                        selectedMitraId === 'all' ? 'bg-white/20 text-white' : 'bg-[#E8DFD5] text-[#2C221E]'
+                      }`}>
+                        {artisans.length}
+                      </span>
+                    </button>
+
+                    {artisans.map((art) => {
+                      const isSelected = selectedMitraId === art.id;
+                      const artProdCount = products.filter((p) => checkProductBelongsToArtisan(p, art)).length;
+                      return (
+                        <button
+                          key={art.id}
+                          type="button"
+                          onClick={() => setSelectedMitraId(art.id)}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-2 ${
+                            isSelected
+                              ? 'bg-[#8C533C] text-white border-[#8C533C] shadow-xs'
+                              : 'bg-[#FAF7F2] text-[#61574F] border-[#E8DFD5] hover:bg-white hover:text-[#2C221E]'
+                          }`}
+                        >
+                          <span className="font-mono text-[10px] opacity-75">#{String(art.seqNumber || 1).padStart(2, '0')}</span>
+                          <span>{art.name}</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                            isSelected ? 'bg-black/25 text-white' : 'bg-[#E8DFD5] text-[#2C221E]'
+                          }`}>
+                            {artProdCount} kriya
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Jangka Waktu Perhitungan Omset (Date Range Filter) */}
+                <div className="pt-4 border-t border-[#F2ECE3]">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
+                    <label className="text-xs font-bold text-[#2C221E] flex items-center gap-1.5">
+                      <CalendarRange className="w-4 h-4 text-[#8C533C]" />
+                      <span>Jangka Waktu Perhitungan Omset Penjualan:</span>
+                    </label>
+                    <div className="text-[11px] font-semibold text-[#8C533C] bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 inline-block self-start sm:self-auto">
+                      Periode Aktif: <strong>{dateRangeLabel}</strong>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[
+                      { id: 'all', label: 'Semua Waktu' },
+                      { id: 'today', label: 'Hari Ini' },
+                      { id: '7days', label: '7 Hari Terakhir' },
+                      { id: '30days', label: '30 Hari Terakhir' },
+                      { id: 'this_month', label: 'Bulan Ini' },
+                      { id: 'custom', label: 'Rentang Tanggal Kustom...' },
+                    ].map((preset) => {
+                      const isActive = mitraDateRange === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setMitraDateRange(preset.id as any)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-[#3A4D39] text-white border-[#3A4D39] shadow-xs'
+                              : 'bg-white text-[#574E47] border-[#E8DFD5] hover:bg-[#FAF7F2]'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Custom Date Range Picker */}
+                  {mitraDateRange === 'custom' && (
+                    <div className="mt-3.5 p-3.5 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5] flex flex-wrap items-center gap-4 text-xs animate-in fade-in">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-[#574E47]">Mulai Tanggal:</span>
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          className="px-2.5 py-1.5 bg-white border border-[#E8DFD5] rounded-lg text-xs font-medium text-[#2C221E] focus:outline-none focus:border-[#8C533C]"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-[#574E47]">Sampai Tanggal:</span>
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          className="px-2.5 py-1.5 bg-white border border-[#E8DFD5] rounded-lg text-xs font-medium text-[#2C221E] focus:outline-none focus:border-[#8C533C]"
+                        />
+                      </div>
+                      <span className="text-[11px] text-[#7A7067]">
+                        *Omset dan barang terjual akan dihitung khusus untuk pesanan pada rentang tanggal ini.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 4 Summary Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {/* 1. Omset dalam Periode */}
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E8DFD5] shadow-xs">
+                  <div className="flex items-center justify-between text-[#7A7067] text-xs">
+                    <span>Omset Terjual ({dateRangeLabel})</span>
+                    <TrendingUp className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div className="mt-2 text-xl sm:text-2xl font-bold font-mono tabular-nums text-emerald-700">
+                    {formatIDR(totalOmsetPeriod)}
+                  </div>
+                  <div className="text-[11px] text-[#7A7067] mt-1">
+                    {selectedMitraId === 'all' ? 'Total seluruh 5 mitra' : `Khusus omset ${activeArtisan?.name}`}
+                  </div>
+                </div>
+
+                {/* 2. Jumlah Terjual */}
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E8DFD5] shadow-xs">
+                  <div className="flex items-center justify-between text-[#7A7067] text-xs">
+                    <span>Kriya Terjual ({dateRangeLabel})</span>
+                    <ShoppingBag className="w-4 h-4 text-[#8C533C]" />
+                  </div>
+                  <div className="mt-2 text-xl sm:text-2xl font-bold font-mono tabular-nums text-[#2C221E]">
+                    {totalUnitsSoldPeriod} <span className="text-xs font-normal text-[#7A7067]">unit</span>
+                  </div>
+                  <div className="text-[11px] text-[#7A7067] mt-1">
+                    Pesanan terkonfirmasi & lunas
+                  </div>
+                </div>
+
+                {/* 3. Ketersediaan Stok */}
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E8DFD5] shadow-xs">
+                  <div className="flex items-center justify-between text-[#7A7067] text-xs">
+                    <span>Total Stok Fisik Tersedia</span>
+                    <Package className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="mt-2 text-xl sm:text-2xl font-bold font-mono tabular-nums text-[#2C221E] flex items-baseline gap-2">
+                    <span>{totalStockCount}</span>
+                    <span className="text-xs font-normal text-[#7A7067]">unit</span>
+                    {totalOutStockCount > 0 && (
+                      <span className="text-[10px] text-red-600 bg-red-50 px-1.5 py-0.5 rounded-md font-semibold">
+                        {totalOutStockCount} habis
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-[#7A7067] mt-1">
+                    Dimaintain langsung pengrajin
+                  </div>
+                </div>
+
+                {/* 4. Total Katalog Produk */}
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E8DFD5] shadow-xs">
+                  <div className="flex items-center justify-between text-[#7A7067] text-xs">
+                    <span>Jumlah Kriya Tayang</span>
+                    <Layers className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <div className="mt-2 text-xl sm:text-2xl font-bold font-mono tabular-nums text-[#2C221E]">
+                    {filteredByArtisan.length} <span className="text-xs font-normal text-[#7A7067]">item kriya</span>
+                  </div>
+                  <div className="text-[11px] text-[#7A7067] mt-1">
+                    {selectedMitraId === 'all' ? 'Seluruh katalog toko' : `Diproduksi ${activeArtisan?.workshopName || activeArtisan?.name}`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Breakdown Omset per Mitra (If "Semua Mitra" is selected) */}
+              {selectedMitraId === 'all' && (
+                <div className="bg-white p-5 rounded-2xl border border-[#E8DFD5] shadow-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-serif text-sm font-bold text-[#2C221E] flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-[#8C533C]" />
+                      <span>Ringkasan Omset per Mitra ({dateRangeLabel})</span>
+                    </h3>
+                    <span className="text-[11px] text-[#7A7067]">Klik mitra untuk filter detail produk</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    {artisans.map((art) => {
+                      const artProducts = productsWithStats.filter((p) => checkProductBelongsToArtisan(p, art));
+                      const artOmset = artProducts.reduce((sum, p) => sum + p.omsetInPeriod, 0);
+                      const artSold = artProducts.reduce((sum, p) => sum + p.soldInPeriod, 0);
+                      const artStock = artProducts.reduce((sum, p) => sum + p.stock, 0);
+
+                      return (
+                        <div
+                          key={art.id}
+                          onClick={() => setSelectedMitraId(art.id)}
+                          className="p-3.5 rounded-xl border border-[#E8DFD5] bg-[#FAF7F2]/60 hover:bg-[#FAF7F2] hover:border-[#8C533C] transition-all cursor-pointer space-y-2 group"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="font-bold text-xs text-[#2C221E] group-hover:text-[#8C533C] transition-colors truncate">
+                                {art.name}
+                              </div>
+                              <div className="text-[10px] text-[#7A7067] truncate">
+                                {art.workshopName || 'Studio Mitra'}
+                              </div>
+                            </div>
+                            <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-[#E8DFD5] text-[#7A7067]">
+                              #{String(art.seqNumber || 1).padStart(2, '0')}
+                            </span>
+                          </div>
+
+                          <div className="pt-2 border-t border-[#E8DFD5]/60 space-y-1 text-[11px]">
+                            <div className="flex justify-between items-center text-[#7A7067]">
+                              <span>Omset Periode:</span>
+                              <span className="font-mono font-bold text-emerald-700">{formatIDR(artOmset)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[#7A7067]">
+                              <span>Terjual:</span>
+                              <span className="font-semibold text-[#2C221E]">{artSold} unit</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[#7A7067]">
+                              <span>Stok Tersisa:</span>
+                              <span className={`font-semibold ${artStock === 0 ? 'text-red-600' : 'text-[#2C221E]'}`}>
+                                {artStock} unit
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Search & Stock Filter Toolbar */}
+              <div className="bg-white p-4 rounded-2xl border border-[#E8DFD5] shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-[#7A7067] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={productSearchQuery}
+                    onChange={(e) => setProductSearchQuery(e.target.value)}
+                    placeholder="Cari berdasarkan nama kriya, kode hex 10 digit, nama pengrajin, bahan..."
+                    className="w-full pl-9 pr-4 py-2 bg-[#FAF7F2] border border-[#E8DFD5] rounded-xl text-xs font-medium text-[#2C221E] focus:outline-none focus:border-[#8C533C]"
+                  />
+                  {productSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setProductSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#7A7067] hover:text-[#2C221E]"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[#7A7067] font-medium hidden md:inline">Filter Stok:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { id: 'all', label: 'Semua Stok' },
+                      { id: 'in_stock', label: 'Tersedia (>5)' },
+                      { id: 'low_stock', label: 'Menipis (1-5)' },
+                      { id: 'out_of_stock', label: 'Habis (0) · Buram' },
+                    ].map((st) => (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => setStockStatusFilter(st.id as any)}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                          stockStatusFilter === st.id
+                            ? 'bg-[#2C221E] text-white shadow-xs'
+                            : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
+                        }`}
+                      >
+                        {st.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Daftar Produk Table / Card List */}
+              <div className="bg-white rounded-2xl border border-[#E8DFD5] shadow-xs overflow-hidden">
+                <div className="px-5 py-4 border-b border-[#F2ECE3] flex items-center justify-between">
+                  <div className="font-serif text-sm font-bold text-[#2C221E]">
+                    Daftar Produk Kriya ({finalProducts.length} karya ditemukan)
+                  </div>
+                  <span className="text-xs text-[#7A7067]">
+                    Keterangan: Barang dengan stok 0 otomatis tampil dengan foto buram di etalase pembeli
+                  </span>
+                </div>
+
+                {finalProducts.length === 0 ? (
+                  <div className="p-12 text-center text-[#7A7067] space-y-2">
+                    <Package className="w-10 h-10 mx-auto text-[#D9C3B0]" />
+                    <div className="text-sm font-bold text-[#2C221E]">Tidak ada produk yang cocok</div>
+                    <p className="text-xs">Silakan ubah filter mitra, kata kunci pencarian, atau status stok.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-[#FAF7F2] text-[#574E47] font-bold border-b border-[#E8DFD5]">
+                        <tr>
+                          <th className="py-3 px-4">Kriya & Foto</th>
+                          <th className="py-3 px-4">Kode Barang (10 Digit)</th>
+                          <th className="py-3 px-4">Pengrajin & Workshop</th>
+                          <th className="py-3 px-4 text-right">Harga Satuan</th>
+                          <th className="py-3 px-4 text-center">Ketersediaan Stok</th>
+                          <th className="py-3 px-4 text-center">Terjual ({dateRangeLabel})</th>
+                          <th className="py-3 px-4 text-right">Omset ({dateRangeLabel})</th>
+                          <th className="py-3 px-4 text-center">All-Time Terjual</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#F2ECE3]">
+                        {finalProducts.map((p) => {
+                          const isOutOfStock = p.stock === 0;
+                          const isLowStock = p.stock > 0 && p.stock <= 5;
+
+                          return (
+                            <tr key={p.id} className="hover:bg-[#FAF7F2]/60 transition-colors">
+                              {/* Kriya & Foto */}
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-[#E8DFD5] bg-[#FAF7F2]">
+                                    <img
+                                      src={p.image}
+                                      alt={p.name}
+                                      className={`w-full h-full object-cover transition-all ${
+                                        isOutOfStock ? 'filter blur-[1.5px] grayscale contrast-75 opacity-60' : ''
+                                      }`}
+                                    />
+                                    {isOutOfStock && (
+                                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                        <span className="text-[9px] font-bold text-white tracking-wider uppercase px-1 py-0.5 rounded bg-red-600/90 text-center leading-none">
+                                          Habis
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-[#2C221E] truncate max-w-xs">{p.name}</div>
+                                    <div className="text-[11px] text-[#7A7067] flex items-center gap-1.5 mt-0.5">
+                                      <span className="bg-[#FAF7F2] px-1.5 py-0.2 rounded border border-[#E8DFD5]">
+                                        {p.categoryLabel}
+                                      </span>
+                                      {p.materials && p.materials[0] && (
+                                        <span className="truncate max-w-[140px] text-[#8C533C]">
+                                          · {p.materials[0]}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Kode Barang 10 Digit Hexadecimal */}
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <div className="space-y-0.5">
+                                  <div className="font-mono font-bold text-[#8C533C] text-xs bg-[#FAF7F2] px-2 py-1 rounded-md border border-[#E8DFD5] inline-block">
+                                    #{p.productCode || 'KODE-BARANG'}
+                                  </div>
+                                  {p.productCode && p.productCode.length === 10 && (
+                                    <div className="text-[10px] text-[#7A7067] font-mono">
+                                      [{p.productCode.slice(0, 5)}]-[{p.productCode.slice(5, 7)}]-[{p.productCode.slice(7, 10)}]
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* Pengrajin & Workshop */}
+                              <td className="py-3 px-4">
+                                <div className="font-semibold text-[#2C221E]">{p.artisan.name}</div>
+                                <div className="text-[11px] text-[#7A7067] flex items-center gap-1">
+                                  <span>{p.artisan.workshopName || 'Studio Mitra'}</span>
+                                  {p.artisan.location && <span>· {p.artisan.location}</span>}
+                                </div>
+                              </td>
+
+                              {/* Harga Satuan */}
+                              <td className="py-3 px-4 text-right font-mono font-semibold text-[#2C221E] whitespace-nowrap">
+                                {formatIDR(p.price)}
+                              </td>
+
+                              {/* Ketersediaan Stok */}
+                              <td className="py-3 px-4 text-center whitespace-nowrap">
+                                {isOutOfStock ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-100 text-red-800 border border-red-200">
+                                    <AlertTriangle className="w-3 h-3 text-red-600" />
+                                    <span>0 Unit (Habis & Buram)</span>
+                                  </span>
+                                ) : isLowStock ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                                    <Clock className="w-3 h-3 text-amber-700" />
+                                    <span>Menipis: {p.stock} Unit</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>Tersedia: {p.stock} Unit</span>
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Terjual Dalam Periode */}
+                              <td className="py-3 px-4 text-center whitespace-nowrap">
+                                <span className={`font-mono font-bold text-xs ${
+                                  p.soldInPeriod > 0 ? 'text-[#8C533C]' : 'text-[#7A7067]'
+                                }`}>
+                                  {p.soldInPeriod} unit
+                                </span>
+                              </td>
+
+                              {/* Omset Dalam Periode */}
+                              <td className="py-3 px-4 text-right whitespace-nowrap">
+                                <span className={`font-mono font-bold text-xs ${
+                                  p.omsetInPeriod > 0 ? 'text-emerald-700' : 'text-[#7A7067]'
+                                }`}>
+                                  {formatIDR(p.omsetInPeriod)}
+                                </span>
+                              </td>
+
+                              {/* All-time Terjual */}
+                              <td className="py-3 px-4 text-center whitespace-nowrap text-[#7A7067] font-mono text-[11px]">
+                                {p.allTimeSold} unit ({formatIDR(p.allTimeOmset)})
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </main>
 
       {/* Modal Input Nomor Resi Pengiriman */}
