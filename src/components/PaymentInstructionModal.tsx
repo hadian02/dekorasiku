@@ -24,6 +24,7 @@ interface PaymentInstructionModalProps {
   onClose: () => void;
   onVerifyPayment?: (orderId: string, mode: 'otomatis' | 'manual') => void;
   onOpenChatWithOrder?: (orderId: string) => void;
+  onCancelOrder?: (orderId: string) => void;
 }
 
 export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = ({
@@ -32,6 +33,7 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
   onClose,
   onVerifyPayment,
   onOpenChatWithOrder,
+  onCancelOrder,
 }) => {
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [isProcessingSim, setIsProcessingSim] = useState(false);
@@ -188,7 +190,7 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
               <div className="max-w-[240px] mx-auto bg-white p-4 rounded-2xl border-2 border-[#2C221E] shadow-md flex flex-col items-center">
                 <div className="w-full flex items-center justify-between border-b border-gray-200 pb-2 mb-2">
                   <span className="font-black tracking-widest text-[#2C221E] text-xs">QRIS</span>
-                  <span className="text-[10px] text-gray-500 font-mono">KALA KRIYA</span>
+                  <span className="text-[10px] text-[#8C533C] font-bold tracking-wider">DEKORASIKU</span>
                 </div>
 
                 {/* Stylized QR Code SVG */}
@@ -267,7 +269,7 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
                   <li>Buka aplikasi m-Banking atau e-wallet (BCA Mobile, GoPay, OVO, Dana, dll).</li>
                   <li>Pilih menu <strong>Scan / Bayar QRIS</strong>.</li>
                   <li>Arahkan kamera ke QR Code di atas.</li>
-                  <li>Periksa nama penerima <strong>Kala Kriya Atelier</strong> dan nominal <strong>{formatIDR(order.total)}</strong>.</li>
+                  <li>Periksa nama penerima <strong>dekorasiku Atelier</strong> dan nominal <strong>{formatIDR(order.total)}</strong>.</li>
                   <li>Masukkan PIN Anda. Pembayaran akan terkonfirmasi secara instan.</li>
                 </ol>
               </div>
@@ -315,7 +317,7 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
                     </div>
                     <div>
                       <div className="text-xs font-bold text-[#2C221E]">BCA Virtual Account</div>
-                      <div className="text-[10px] text-[#7A7067]">Atas Nama: KALA KRIYA ATELIER</div>
+                      <div className="text-[10px] text-[#7A7067]">Atas Nama: DEKORASIKU ATELIER</div>
                     </div>
                   </div>
                   <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">
@@ -444,19 +446,36 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 p-4 bg-white border-t border-[#E8DFD5] flex items-center justify-between text-xs">
+        <div className="shrink-0 p-4 bg-white border-t border-[#E8DFD5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-1.5 text-[#7A7067]">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Kala Kriya Escrow & Garansi Nusantara</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>dekorasiku Escrow & Keamanan Transaksi</span>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 bg-[#2C221E] hover:bg-[#43352F] text-white font-semibold rounded-lg transition-colors cursor-pointer"
-          >
-            Tutup
-          </button>
+          <div className="flex items-center justify-end gap-2">
+            {order.paymentStatus === 'menunggu_pembayaran' && onCancelOrder && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm(`Batalkan pesanan #${order.orderId}? Pesanan yang belum dibayar ini akan dibatalkan.`)) {
+                    onCancelOrder(order.orderId);
+                    onClose();
+                  }
+                }}
+                className="px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 font-semibold rounded-lg transition-colors cursor-pointer"
+              >
+                Batalkan Pesanan
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-[#2C221E] hover:bg-[#43352F] text-white font-semibold rounded-lg transition-colors cursor-pointer"
+            >
+              Tutup
+            </button>
+          </div>
         </div>
       </div>
     </div>

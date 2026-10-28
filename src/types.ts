@@ -1,5 +1,6 @@
 export interface Product {
   id: string;
+  productCode: string; // 10-digit hexadecimal: digit 1-5 nomor urut pengrajin, 6-7 kode bahan baku, 8-10 nomor urut barang
   name: string;
   category: 'keramik' | 'anyaman' | 'kayu' | 'tekstil' | 'aromaterapi';
   categoryLabel: string;
@@ -9,7 +10,9 @@ export interface Product {
   secondaryImages?: string[];
   artisan: {
     id?: string;
+    seqNumber?: number;
     name: string;
+    workshopName: string; // Nama usaha pengrajin (wajib tampil di setiap barang)
     location: string;
     bio: string;
   };
@@ -17,7 +20,7 @@ export interface Product {
   materials: string[];
   dimensions: string;
   careGuide: string;
-  stock: number;
+  stock: number; // Jumlah stok kriya yang dimaintain oleh pengrajin. Jika 0 foto buram.
   rating: number;
   reviewCount: number;
   tag?: string;
@@ -76,9 +79,19 @@ export interface OrderDetails {
   shippingMethod: string;
   paymentMethod: string;
   paymentStatus: 'menunggu_pembayaran' | 'terverifikasi_otomatis' | 'terverifikasi_manual' | 'batal';
-  orderStatus: 'menunggu_pembayaran' | 'diproses' | 'dikirim' | 'selesai';
+  orderStatus: 'menunggu_pembayaran' | 'menunggu_konfirmasi' | 'diproses' | 'dikirim' | 'selesai' | 'dibatalkan';
   paymentReference?: string;
   verifiedAt?: string;
+  confirmedByArtisanAt?: string;
+  confirmedByArtisanIso?: string;
+  shipmentDeadline?: string;
+  shipmentDeadlineIso?: string;
+  shippingCourier?: string;
+  shippingTrackingNumber?: string;
+  shippedAt?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
+  refundStatus?: 'none' | 'proses_refund' | 'selesai_refund';
   items: CartItem[];
   subtotal: number;
   shippingCost: number;
@@ -105,6 +118,7 @@ export interface ChatMessage {
 // Artisan Types
 export interface Artisan {
   id: string;
+  seqNumber?: number; // Nomor urut pengrajin dalam desimal (dikonversi ke 5 digit hex)
   name: string;
   workshopName?: string;
   workshopAddress: string;

@@ -28,12 +28,15 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
       .filter((item) => {
         const matchesCategory =
           activeCategory === 'semua' || item.category === activeCategory;
+        const cleanQuery = searchQuery.trim().toLowerCase();
         const matchesSearch =
-          searchQuery.trim() === '' ||
-          item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.artisan.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.materials.some((m) => m.toLowerCase().includes(searchQuery.toLowerCase()));
+          cleanQuery === '' ||
+          item.productCode?.toLowerCase().includes(cleanQuery) ||
+          item.artisan.workshopName?.toLowerCase().includes(cleanQuery) ||
+          item.name.toLowerCase().includes(cleanQuery) ||
+          item.description.toLowerCase().includes(cleanQuery) ||
+          item.artisan.name.toLowerCase().includes(cleanQuery) ||
+          item.materials.some((m) => m.toLowerCase().includes(cleanQuery));
 
         return matchesCategory && matchesSearch;
       })
@@ -96,7 +99,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
               <Search className="w-4 h-4 text-[#A89F95] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Cari cangkir, keranjang, jati, lilin..."
+                placeholder="Cari kode barang (#0000101001), nama usaha pengrajin, produk..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-9 py-2 text-xs text-[#2C221E] bg-white border border-[#E8DFD5] rounded-lg focus:outline-none focus:border-[#8C533C] focus:ring-1 focus:ring-[#8C533C] placeholder:text-[#A89F95] transition-all"

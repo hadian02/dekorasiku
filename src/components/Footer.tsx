@@ -26,11 +26,15 @@ export const Footer: React.FC<FooterProps> = ({ onOpenArtisanPortal, onOpenAdmin
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
           {/* Brand info */}
           <div className="md:col-span-5 space-y-4">
-            <span className="font-serif text-2xl font-bold tracking-tight text-[#FAF7F2]">
-              Kala Kriya
-            </span>
+            <div className="flex items-center gap-2">
+              <img
+                src="/assets/aistudio/1000297830_4688d260.png"
+                alt="dekorasiku"
+                className="h-8 w-auto object-contain brightness-125"
+              />
+            </div>
             <p className="text-xs sm:text-sm text-[#B3A89F] leading-relaxed max-w-sm">
-              Atelier kurasi kriya dan kerajinan tangan lokal nusantara. Menghubungkan kehangatan sentuhan tangan pengrajin desa dengan kenyamanan hunian modern Anda.
+              Studio kurasi dekorasi ruang dan kriya lokal nusantara. Menghadirkan kehangatan sentuhan tangan pengrajin dengan estetika hunian modern Anda.
             </p>
             <div className="text-xs text-[#8C7D73] pt-2">
               Studio & Galeri: Jl. Kasongan No. 42, Bantul, D.I. Yogyakarta 55184
@@ -140,7 +144,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenArtisanPortal, onOpenAdmin
         {/* Bottom Bar */}
         <div className="mt-12 pt-6 border-t border-[#3B2F29] flex flex-col sm:flex-row items-center justify-between text-xs text-[#7A7067] gap-3">
           <div>
-            © {new Date().getFullYear()} Kala Kriya Studio. Seluruh hak cipta dilindungi.
+            © {new Date().getFullYear()} dekorasiku. Seluruh hak cipta dilindungi.
           </div>
           <div className="flex items-center gap-4 text-[#8C7D73]">
             <span>100% Buatan Tangan Lokal Nusantara</span>

@@ -3,6 +3,7 @@ import { Product } from '../types';
 export const PRODUCTS: Product[] = [
   {
     id: 'kriya-01',
+    productCode: '0000101001',
     name: 'Cangkir Keramik Bintik Embun',
     category: 'keramik',
     categoryLabel: 'Keramik & Tembikar',
@@ -14,7 +15,10 @@ export const PRODUCTS: Product[] = [
       '/assets/images/hero_artisanal_studio_1792844458806.jpg'
     ],
     artisan: {
+      id: 'artisan-01',
+      seqNumber: 1,
       name: 'Wayan Sujana',
+      workshopName: 'Studio Tembikar Sekar Bumi',
       location: 'Kasongan, Bantul',
       bio: 'Pengrajin tembikar generasi ketiga yang memadukan tanah liat lokal vulkanik dengan teknik pembakaran tungku kayu tradisional.'
     },
@@ -29,6 +33,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'kriya-02',
+    productCode: '0000202001',
     name: 'Keranjang Anyam Lamun & Rotan Alami',
     category: 'anyaman',
     categoryLabel: 'Anyaman & Serat Alami',
@@ -40,7 +45,10 @@ export const PRODUCTS: Product[] = [
       '/assets/images/hero_artisanal_studio_1792844458806.jpg'
     ],
     artisan: {
+      id: 'artisan-02',
+      seqNumber: 2,
       name: 'Ibu Ratna & Kelompok Penganyam',
+      workshopName: 'Sentra Anyam Ratna Kreasi',
       location: 'Tasikmalaya, Jawa Barat',
       bio: 'Menganyam serat pandan dan lamun laut (seagrass) pilihan dari pesisir selatan dengan ketelitian warisan nenek moyang.'
     },
@@ -55,6 +63,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'kriya-03',
+    productCode: '0000303001',
     name: 'Baki Saji Kayu Jati Utuh & Sendok Ukir',
     category: 'kayu',
     categoryLabel: 'Kayu & Perabot Mini',
@@ -65,7 +74,10 @@ export const PRODUCTS: Product[] = [
       '/assets/images/hero_artisanal_studio_1792844458806.jpg'
     ],
     artisan: {
+      id: 'artisan-03',
+      seqNumber: 3,
       name: 'Pak Joko Santoso',
+      workshopName: 'Sanggar Ukir Jati Abadi',
       location: 'Jepara, Jawa Tengah',
       bio: 'Ahli pahat kayu yang mengkhususkan diri pada pemanfaatan kayu jati perhutani tua dengan alur serat emas yang tahan puluhan tahun.'
     },
@@ -80,6 +92,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'kriya-04',
+    productCode: '0000404001',
     name: 'Lilin Kedelai Bejana Tembikar Cendana & Rempah',
     category: 'aromaterapi',
     categoryLabel: 'Aromaterapi & Lilin Kedelai',
@@ -90,7 +103,10 @@ export const PRODUCTS: Product[] = [
       '/assets/images/product_ceramic_mug_1792844459730.jpg'
     ],
     artisan: {
+      id: 'artisan-04',
+      seqNumber: 4,
       name: 'Citra Kirana',
+      workshopName: 'Citra Aroma Botanical Studio',
       location: 'Ubud, Bali',
       bio: 'Peracik wewangian botani yang meracik minyak esensial murni dari rempah rempah tropis nusantara ke dalam bejana gerabah ramah lingkungan.'
     },
@@ -105,6 +121,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'kriya-05',
+    productCode: '0000505001',
     name: 'Kain Selimut Tenun Serat Rami & Katun Dingin',
     category: 'tekstil',
     categoryLabel: 'Tekstil & Tenun',
@@ -116,7 +133,10 @@ export const PRODUCTS: Product[] = [
       '/assets/images/product_woven_basket_1792844459724.jpg'
     ],
     artisan: {
+      id: 'artisan-05',
+      seqNumber: 5,
       name: 'Ibu Maryam',
+      workshopName: 'Tenun Canting Maryam',
       location: 'Pekalongan, Jawa Tengah',
       bio: 'Penemu teknik tenun silang ganda menggunakan alat tenun bukan mesin (ATBM) dengan pewarna alami ekstrak kulit pohon mahoni.'
     },
@@ -131,6 +151,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'kriya-06',
+    productCode: '0000101002',
     name: 'Mangkok Keramik Saji Lapis Glasir Telur Asin',
     category: 'keramik',
     categoryLabel: 'Keramik & Tembikar',
@@ -141,7 +162,10 @@ export const PRODUCTS: Product[] = [
       '/assets/images/product_teak_tray_1792844460545.jpg'
     ],
     artisan: {
+      id: 'artisan-01',
+      seqNumber: 1,
       name: 'Wayan Sujana',
+      workshopName: 'Studio Tembikar Sekar Bumi',
       location: 'Kasongan, Bantul',
       bio: 'Memadukan material lempung merah Jawa dengan glasir abu vulkanik bergradasi matte kehijauan.'
     },

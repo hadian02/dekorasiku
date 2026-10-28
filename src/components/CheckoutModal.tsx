@@ -152,7 +152,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handleCopyInvoice = () => {
     if (!completedOrder) return;
-    const text = `Pesanan Kala Kriya #${completedOrder.orderId} - Total: ${formatIDR(completedOrder.total)} untuk ${completedOrder.customerName}`;
+    const text = `Pesanan dekorasiku #${completedOrder.orderId} - Total: ${formatIDR(completedOrder.total)} untuk ${completedOrder.customerName}`;
     navigator.clipboard.writeText(text);
     setCopiedInvoice(true);
     setTimeout(() => setCopiedInvoice(false), 2000);

@@ -11,6 +11,7 @@ import {
   ArtisanPayout
 } from './types';
 import { PRODUCTS, formatIDR } from './data/products';
+import { generateProductCode, getMaterialHex } from './utils/productCode';
 import {
   INITIAL_ORDERS,
   INITIAL_CHATS,
@@ -167,16 +168,26 @@ export default function App() {
     }
   });
 
-  // Dynamic Catalog Products (Base PRODUCTS + any published by artisan)
+  // Dynamic Catalog Products (Base PRODUCTS + any published by artisan + stock overrides maintained by artisan)
   const [catalogProducts, setCatalogProducts] = useState<Product[]>(() => {
     try {
+      const stockOverridesStr = localStorage.getItem('kala_kriya_stock_overrides');
+      const stockOverrides: Record<string, number> = stockOverridesStr ? JSON.parse(stockOverridesStr) : {};
+
       const saved = localStorage.getItem('kala_kriya_published_products');
+      let baseList = PRODUCTS;
       if (saved) {
         const sanitized = saved.replaceAll('/src/assets/images/', '/assets/images/');
         const extra: Product[] = JSON.parse(sanitized);
-        return [...extra, ...PRODUCTS];
+        baseList = [...extra, ...PRODUCTS];
       }
-      return PRODUCTS;
+
+      return baseList.map((p) => {
+        if (typeof stockOverrides[p.id] === 'number') {
+          return { ...p, stock: Math.max(0, stockOverrides[p.id]) };
+        }
+        return p;
+      });
     } catch {
       return PRODUCTS;
     }
@@ -629,11 +640,11 @@ export default function App() {
 
     // Simulated responsive studio answer
     setTimeout(() => {
-      let reply = 'Terima kasih atas pesan Anda! Tim pengrajin studio Kala Kriya sedang meninjau dan akan segera membantu.';
+      let reply = 'Terima kasih atas pesan Anda! Tim studio dekorasiku sedang meninjau dan akan segera membantu.';
       if (text.toLowerCase().includes('microwave')) {
         reply = 'Seluruh keramik kami aman digunakan dalam microwave dan dishwasher karena melalui proses pembakaran tungku suhu tinggi 1250°C.';
       } else if (text.toLowerCase().includes('kirim') || text.toLowerCase().includes('resi')) {
-        reply = 'Pesanan kriya Anda disiapkan dengan kemasan pelindung ekstra dan biasanya diserahkan ke ekspedisi dalam 1-2 hari kerja.';
+        reply = 'Pesanan Anda disiapkan dengan kemasan pelindung ekstra dan biasanya diserahkan ke ekspedisi dalam 1-2 hari kerja.';
       } else if (text.toLowerCase().includes('kartu') || text.toLowerCase().includes('kado')) {
         reply = 'Tentu! Kami menyediakan opsi kemasan kado alami berbahan kertas samson dan kartu ucapan bertulis tangan rapi.';
       }
@@ -641,7 +652,7 @@ export default function App() {
       const autoReply: ChatMessage = {
         id: `msg-reply-${Date.now()}`,
         sender: 'admin',
-        senderName: 'Atelier Kala Kriya',
+        senderName: 'Atelier dekorasiku',
         customerId: customer.id,
         customerEmail: customer.email,
         text: reply,
@@ -657,7 +668,7 @@ export default function App() {
     const adminMsg: ChatMessage = {
       id: `msg-admin-${Date.now()}`,
       sender: 'admin',
-      senderName: 'Atelier Kala Kriya',
+      senderName: 'Atelier dekorasiku',
       customerId,
       customerEmail,
       text,
@@ -695,7 +706,7 @@ export default function App() {
       const paidOrder: OrderDetails = {
         ...pendingPaymentOrder,
         paymentStatus: mode === 'otomatis' ? 'terverifikasi_otomatis' : 'terverifikasi_manual',
-        orderStatus: 'diproses',
+        orderStatus: 'menunggu_konfirmasi', // Tidak langsung diproses, menunggu konfirmasi pengrajin
         verifiedAt: `${time} (${mode === 'otomatis' ? 'QRIS Webhook Gateway' : 'Verifikasi Bank / COD'})`,
       };
 
@@ -716,8 +727,8 @@ export default function App() {
       setPendingPaymentOrder(null);
       showToast(
         mode === 'otomatis'
-          ? `Pembayaran QRIS #${orderId} lunas! Pesanan masuk ke daftar pesanan.`
-          : `Pesanan #${orderId} berhasil dikonfirmasi dan masuk ke daftar pesanan!`,
+          ? `Pembayaran QRIS #${orderId} lunas! Pesanan masuk menunggu konfirmasi pengrajin.`
+          : `Pesanan #${orderId} lunas & menunggu konfirmasi pengrajin!`,
         'check'
       );
       setIsOrdersModalOpen(true);
@@ -731,7 +742,7 @@ export default function App() {
           ? {
               ...o,
               paymentStatus: mode === 'otomatis' ? 'terverifikasi_otomatis' : 'terverifikasi_manual',
-              orderStatus: o.orderStatus === 'menunggu_pembayaran' ? 'diproses' : o.orderStatus,
+              orderStatus: o.orderStatus === 'menunggu_pembayaran' ? 'menunggu_konfirmasi' : o.orderStatus,
               verifiedAt: `${time} (${mode === 'otomatis' ? 'QRIS Webhook Gateway' : 'Verifikasi Manual Admin'})`,
             }
           : o
@@ -740,10 +751,112 @@ export default function App() {
 
     showToast(
       mode === 'otomatis'
-        ? `Pembayaran QRIS #${orderId} berhasil diverifikasi otomatis!`
-        : `Pembayaran #${orderId} berhasil diverifikasi secara manual.`,
+        ? `Pembayaran QRIS #${orderId} lunas & menunggu konfirmasi pengrajin!`
+        : `Pembayaran #${orderId} terverifikasi & menunggu konfirmasi pengrajin.`,
       'check'
     );
+  };
+
+  // Pengrajin / Admin mengonfirmasi pesanan kriya -> status berubah menjadi 'diproses' dan tenggat 1x24 jam dimulai
+  const handleArtisanConfirmOrder = (orderId: string) => {
+    const now = new Date();
+    const confirmedTime = now.toLocaleString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const deadlineDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const deadlineTime = deadlineDate.toLocaleString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.orderId === orderId
+          ? {
+              ...o,
+              orderStatus: 'diproses',
+              confirmedByArtisanAt: confirmedTime,
+              confirmedByArtisanIso: now.toISOString(),
+              shipmentDeadline: deadlineTime,
+              shipmentDeadlineIso: deadlineDate.toISOString(),
+            }
+          : o
+      )
+    );
+    showToast(`Pesanan #${orderId} telah dikonfirmasi pengrajin. Batas pengiriman 1x24 jam dimulai!`, 'check');
+  };
+
+  // Pengrajin / Admin melakukan pengiriman dan menginput nomor resi
+  const handleShipOrder = (orderId: string, trackingNumber: string, courierName: string) => {
+    const shippedTime = new Date().toLocaleString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.orderId === orderId
+          ? {
+              ...o,
+              orderStatus: 'dikirim',
+              shippingTrackingNumber: trackingNumber,
+              shippingCourier: courierName,
+              shippedAt: shippedTime,
+            }
+          : o
+      )
+    );
+    showToast(`Pesanan #${orderId} telah dikirim via ${courierName} (No. Resi: ${trackingNumber})`, 'check');
+  };
+
+  // Customer can cancel order before it is processed by artisan ("Sebelum diproses user masih dapat membatalkan pesanan")
+  const handleCancelOrder = (orderId: string) => {
+    const cancelTime = new Date().toLocaleString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    if (pendingPaymentOrder && pendingPaymentOrder.orderId === orderId) {
+      setPendingPaymentOrder(null);
+      showToast(`Pesanan #${orderId} berhasil dibatalkan.`, 'check');
+      return;
+    }
+
+    let wasAlreadyPaid = false;
+
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.orderId !== orderId) return o;
+        wasAlreadyPaid = o.paymentStatus === 'terverifikasi_otomatis' || o.paymentStatus === 'terverifikasi_manual' || o.orderStatus === 'menunggu_konfirmasi';
+        return {
+          ...o,
+          orderStatus: 'dibatalkan',
+          paymentStatus: 'batal',
+          refundStatus: wasAlreadyPaid ? 'proses_refund' : 'none',
+          cancelledAt: cancelTime,
+          cancellationReason: 'Dibatalkan oleh pelanggan sebelum diproses pengrajin',
+        };
+      })
+    );
+
+    if (wasAlreadyPaid) {
+      showToast(`Pesanan #${orderId} berhasil dibatalkan. Pengembalian dana 100% diproses ke rekening/e-wallet Anda.`, 'check');
+    } else {
+      showToast(`Pesanan #${orderId} berhasil dibatalkan.`, 'check');
+    }
   };
 
   // Customer confirms order receipt -> triggers Escrow payout release to Artisan
@@ -1011,9 +1124,19 @@ export default function App() {
       )
     );
 
+    // Generate 10-digit hexadecimal product code
+    const artisanSeq = artisan?.seqNumber || 1;
+    const materialHex = getMaterialHex(targetProp.category, details.materials);
+    const existingArtisanCount = catalogProducts.filter(
+      (p) => p.artisan.name === (artisan?.name || targetProp.artisanName)
+    ).length;
+    const itemSeq = existingArtisanCount + 1;
+    const generatedCode = generateProductCode(artisanSeq, materialHex, itemSeq);
+
     // Build new Product to append to catalog
     const newProduct: Product = {
       id: newProductId,
+      productCode: generatedCode,
       name: details.officialName,
       category: targetProp.category,
       categoryLabel: targetProp.categoryLabel,
@@ -1022,9 +1145,11 @@ export default function App() {
       secondaryImages: details.images,
       artisan: {
         id: artisan?.id || 'artisan-wayan',
-        name: artisan?.name || 'Wayan Sujana',
+        seqNumber: artisanSeq,
+        name: artisan?.name || targetProp.artisanName,
+        workshopName: artisan?.workshopName || targetProp.workshopName || 'Studio Kriya Indonesia',
         location: artisan?.location || 'Kasongan, Bantul',
-        bio: artisan?.bio || 'Pengrajin tembikar mitra resmi Studio Kala Kriya.',
+        bio: artisan?.bio || 'Pengrajin mitra resmi dekorasiku.',
       },
       description: targetProp.initialDescription,
       materials: details.materials,
@@ -1049,9 +1174,33 @@ export default function App() {
     });
 
     showToast(
-      `"${details.officialName}" berhasil diterbitkan & langsung aktif tayang di katalog kriya!`,
+      `"${details.officialName}" berhasil diterbitkan (Kode: #${generatedCode}) & langsung aktif di toko!`,
       'check'
     );
+  };
+
+  // Jumlah stok dimaintain langsung oleh pengrajin. Jika stok 0, foto barang otomatis buram di etalase toko.
+  const handleUpdateProductStock = (productId: string, newStock: number) => {
+    const safeStock = Math.max(0, Math.floor(newStock));
+    setCatalogProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, stock: safeStock } : p))
+    );
+
+    try {
+      const stockOverridesStr = localStorage.getItem('kala_kriya_stock_overrides');
+      const stockOverrides: Record<string, number> = stockOverridesStr ? JSON.parse(stockOverridesStr) : {};
+      stockOverrides[productId] = safeStock;
+      localStorage.setItem('kala_kriya_stock_overrides', JSON.stringify(stockOverrides));
+    } catch (e) {
+      console.error(e);
+    }
+
+    const target = catalogProducts.find((p) => p.id === productId);
+    if (safeStock === 0) {
+      showToast(`Stok "${target?.name || 'Kriya'}" diatur menjadi 0. Foto di etalase otomatis diburamkan.`, 'check');
+    } else {
+      showToast(`Stok "${target?.name || 'Kriya'}" diperbarui menjadi ${safeStock} unit.`, 'check');
+    }
   };
 
   const handleProcessPayout = (payoutId: string) => {
@@ -1105,9 +1254,14 @@ export default function App() {
         }}
         onRegisterArtisan={handleRegisterArtisan}
         onCreateProposal={handleCreateProposal}
+        orders={orders}
+        onConfirmOrderArtisan={handleArtisanConfirmOrder}
+        onShipOrder={handleShipOrder}
         onSendProposalChat={handleArtisanSendProposalChat}
         onPublishCraftDetails={handlePublishCraftDetails}
         onRequestPayout={handleProcessPayout}
+        catalogProducts={catalogProducts}
+        onUpdateProductStock={handleUpdateProductStock}
         onGoToAdmin={() => setViewMode('admin')}
       />
     );
@@ -1158,6 +1312,8 @@ export default function App() {
             : () => setViewMode('store')
         }
         onUpdateOrderStatus={handleUpdateOrderStatus}
+        onConfirmOrderArtisan={handleArtisanConfirmOrder}
+        onShipOrder={handleShipOrder}
         onVerifyPayment={handleVerifyPayment}
         onAdminSendMessage={handleAdminSendMessage}
         onApproveProposal={handleApproveProposal}
@@ -1373,6 +1529,7 @@ export default function App() {
             showToast('Pembayaran ditunda. Keranjang belanja Anda tetap aman tersimpan.', 'check');
           }}
           onVerifyPayment={handleVerifyPayment}
+          onCancelOrder={handleCancelOrder}
           onOpenChatWithOrder={(orderId) => {
             setPendingPaymentOrder(null);
             setChatTargetOrderId(orderId);
@@ -1428,6 +1585,7 @@ export default function App() {
         }}
         onConfirmReceipt={handleConfirmOrderReceipt}
         onVerifyPayment={handleVerifyPayment}
+        onCancelOrder={handleCancelOrder}
       />
 
       {/* Warm Floating Toast Notification */}

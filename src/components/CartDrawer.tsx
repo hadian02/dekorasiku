@@ -128,24 +128,43 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </button>
               </div>
             ) : (
-              items.map((item) => (
-                <div
-                  key={item.product.id}
-                  className="p-3 bg-white rounded-xl border border-[#E8DFD5] flex gap-3 items-center"
-                >
-                  <img
-                    src={item.product.image}
-                    alt={item.product.name}
-                    className="w-16 h-16 rounded-lg object-cover border border-[#E8DFD5] shrink-0"
-                  />
-
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-bold text-[#2C221E] truncate">
-                      {item.product.name}
-                    </h4>
-                    <div className="text-xs text-[#8C533C] font-semibold font-mono tabular-nums mt-0.5">
-                      {formatIDR(item.product.price)}
+              items.map((item) => {
+                const isOutOfStock = item.product.stock <= 0;
+                return (
+                  <div
+                    key={item.product.id}
+                    className="p-3 bg-white rounded-xl border border-[#E8DFD5] flex gap-3 items-center"
+                  >
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-[#E8DFD5] shrink-0 bg-[#FAF7F2]">
+                      <img
+                        src={item.product.image}
+                        alt={item.product.name}
+                        className={`w-full h-full object-cover transition-all ${
+                          isOutOfStock ? 'filter blur-[3px] grayscale-[35%] opacity-70' : ''
+                        }`}
+                      />
+                      {isOutOfStock && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <span className="text-[9px] font-bold text-white uppercase bg-red-600 px-1 py-0.2 rounded">
+                            Habis
+                          </span>
+                        </div>
+                      )}
                     </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] text-[#8C533C] font-semibold truncate">
+                        {item.product.artisan.workshopName} · <span className="font-mono font-bold">#{item.product.productCode}</span>
+                      </div>
+                      <h4 className="text-xs font-bold text-[#2C221E] truncate">
+                        {item.product.name}
+                      </h4>
+                      <div className="flex items-center gap-2 text-xs text-[#8C533C] font-semibold font-mono tabular-nums mt-0.5">
+                        <span>{formatIDR(item.product.price)}</span>
+                        <span className="text-[10px] text-[#7A7067] font-sans font-normal">
+                          (Stok: {item.product.stock})
+                        </span>
+                      </div>
 
                     {/* Stepper & Trash */}
                     <div className="mt-2 flex items-center justify-between gap-2">
@@ -183,8 +202,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     </div>
                   </div>
                 </div>
-              ))
-            )}
+              );
+            })
+          )}
 
             {/* Gift Wrapping Toggle Option */}
             {items.length > 0 && (

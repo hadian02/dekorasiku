@@ -4,7 +4,8 @@ import {
   ArtisanProposal,
   ArtisanProposalChat,
   ArtisanPayout,
-  Product
+  Product,
+  OrderDetails
 } from '../types';
 import { formatIDR } from '../data/products';
 import {
@@ -35,8 +36,15 @@ import {
   Phone,
   Mail,
   HelpCircle,
-  ArrowRight
+  ArrowRight,
+  Copy,
+  Store,
+  Tag,
+  PackageX,
+  Eye,
+  Layers
 } from 'lucide-react';
+import { parseProductCode } from '../utils/productCode';
 
 interface ArtisanPortalProps {
   artisan: Artisan | null;
@@ -44,10 +52,13 @@ interface ArtisanPortalProps {
   proposals: ArtisanProposal[];
   proposalChats: ArtisanProposalChat[];
   payouts: ArtisanPayout[];
+  orders?: OrderDetails[];
   onBackToStore: () => void;
   onLoginArtisan: (artisan: Artisan) => void;
   onLogoutArtisan: () => void;
   onRegisterArtisan?: (artisan: Artisan) => void;
+  onConfirmOrderArtisan?: (orderId: string) => void;
+  onShipOrder?: (orderId: string, trackingNumber: string, courierName: string) => void;
   onCreateProposal: (data: {
     title: string;
     category: ArtisanProposal['category'];
@@ -68,6 +79,8 @@ interface ArtisanPortalProps {
     shippingOptions: string[];
   }) => void;
   onRequestPayout: (payoutId: string) => void;
+  catalogProducts?: Product[];
+  onUpdateProductStock?: (productId: string, newStock: number) => void;
   onGoToAdmin?: () => void;
 }
 
@@ -77,10 +90,15 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
   proposals,
   proposalChats,
   payouts,
+  orders = [],
+  catalogProducts = [],
+  onUpdateProductStock,
   onBackToStore,
   onLoginArtisan,
   onLogoutArtisan,
   onRegisterArtisan,
+  onConfirmOrderArtisan,
+  onShipOrder,
   onCreateProposal,
   onSendProposalChat,
   onPublishCraftDetails,
@@ -114,7 +132,15 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
   const [regBio, setRegBio] = useState('');
 
   // Dashboard Active Tab
-  const [activeTab, setActiveTab] = useState<'proposals' | 'publish' | 'wallet'>('proposals');
+  const [activeTab, setActiveTab] = useState<'orders' | 'proposals' | 'stock' | 'wallet'>('orders');
+  const [stockSearchQuery, setStockSearchQuery] = useState('');
+  const [stockFilterMode, setStockFilterMode] = useState<'all' | 'mine' | 'out_of_stock'>('all');
+  const [customStockInputs, setCustomStockInputs] = useState<Record<string, string>>({});
+
+  // Shipping Modal State for Artisan
+  const [shippingModalOrder, setShippingModalOrder] = useState<OrderDetails | null>(null);
+  const [shippingCourierInput, setShippingCourierInput] = useState<string>('J&T Express');
+  const [trackingNumberInput, setTrackingNumberInput] = useState<string>('');
 
   // Proposal Creation Modal
   const [isCreatingProposal, setIsCreatingProposal] = useState(false);
@@ -162,6 +188,33 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
   const artisanProposals = artisan
     ? proposals.filter((p) => p.artisanId === artisan.id)
     : proposals;
+
+  // Helper untuk mengecek apakah kriya milik pengrajin yang sedang login
+  const checkIsMine = (p: Product): boolean => {
+    if (!artisan) return true;
+    if (p.artisan.name.toLowerCase() === artisan.name.toLowerCase()) return true;
+    if (artisan.workshopName && p.artisan.workshopName) {
+      return p.artisan.workshopName.toLowerCase() === artisan.workshopName.toLowerCase();
+    }
+    return false;
+  };
+
+  // Filter kriya untuk Tab Kelola Stok & Kode Barang
+  const filteredStockProducts = catalogProducts.filter((p) => {
+    const isMine = checkIsMine(p);
+    if (stockFilterMode === 'mine' && !isMine) return false;
+    if (stockFilterMode === 'out_of_stock' && p.stock > 0) return false;
+
+    if (stockSearchQuery.trim()) {
+      const q = stockSearchQuery.toLowerCase().trim();
+      const matchCode = p.productCode?.toLowerCase().includes(q);
+      const matchName = p.name.toLowerCase().includes(q);
+      const matchWorkshop = p.artisan.workshopName?.toLowerCase().includes(q);
+      const matchCategory = p.categoryLabel.toLowerCase().includes(q);
+      return matchCode || matchName || matchWorkshop || matchCategory;
+    }
+    return true;
+  });
 
   const activeProposal = proposals.find((p) => p.id === selectedProposalId) || proposals[0];
   const activeChats = proposalChats.filter((c) => c.proposalId === selectedProposalId);
@@ -1087,8 +1140,30 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
           <div className="flex items-center gap-2">
             <nav className="flex items-center gap-1 bg-white/10 p-1 rounded-xl text-xs">
               <button
+                onClick={() => setActiveTab('orders')}
+                className={`px-3 py-1.5 font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeTab === 'orders'
+                    ? 'bg-[#8C533C] text-white shadow-xs'
+                    : 'text-[#D9C3B0] hover:text-white'
+                }`}
+              >
+                <Package className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Pesanan Kriya Masuk</span>
+                <span className="sm:hidden">Pesanan</span>
+                {orders.filter((o) => o.orderStatus === 'menunggu_konfirmasi').length > 0 ? (
+                  <span className="text-[10px] bg-amber-500 text-white font-bold px-1.5 py-0.2 rounded-full animate-pulse">
+                    {orders.filter((o) => o.orderStatus === 'menunggu_konfirmasi').length} Baru
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full">
+                    {orders.length}
+                  </span>
+                )}
+              </button>
+
+              <button
                 onClick={() => setActiveTab('proposals')}
-                className={`px-3 py-1.5 font-semibold rounded-lg flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-1.5 font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === 'proposals'
                     ? 'bg-[#8C533C] text-white shadow-xs'
                     : 'text-[#D9C3B0] hover:text-white'
@@ -1103,8 +1178,30 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
               </button>
 
               <button
+                onClick={() => setActiveTab('stock')}
+                className={`px-3 py-1.5 font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeTab === 'stock'
+                    ? 'bg-[#8C533C] text-white shadow-xs'
+                    : 'text-[#D9C3B0] hover:text-white'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Kelola Stok & Kode Kriya</span>
+                <span className="sm:hidden">Stok</span>
+                {catalogProducts.some((p) => p.stock === 0) ? (
+                  <span className="text-[10px] bg-red-600 text-white font-bold px-1.5 py-0.2 rounded-full">
+                    {catalogProducts.filter((p) => p.stock === 0).length} Habis
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full">
+                    {catalogProducts.length}
+                  </span>
+                )}
+              </button>
+
+              <button
                 onClick={() => setActiveTab('wallet')}
-                className={`px-3 py-1.5 font-semibold rounded-lg flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-1.5 font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === 'wallet'
                     ? 'bg-[#8C533C] text-white shadow-xs'
                     : 'text-[#D9C3B0] hover:text-white'
@@ -1187,6 +1284,217 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
             </div>
           </div>
         </div>
+
+        {/* TAB 0: PESANAN KRIYA MASUK */}
+        {activeTab === 'orders' && (
+          <div className="space-y-6">
+            {/* Explanatory Rule Banner */}
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-50 to-orange-50/60 rounded-2xl border border-amber-200/80 shadow-xs space-y-2">
+              <div className="flex items-center gap-2 font-bold text-sm text-[#8C533C]">
+                <Clock className="w-4 h-4 text-amber-700" />
+                <span>Ketentuan Pemrosesan & Pengiriman Kriya Mitra</span>
+              </div>
+              <p className="text-xs text-[#5C4524] leading-relaxed">
+                <strong>1. Konfirmasi Pengrajin:</strong> Status pesanan baru akan menjadi <em>Diproses</em> setelah Anda menekan tombol <strong>Konfirmasi Pesanan</strong>. Sebelum Anda konfirmasi/proses, pelanggan masih berhak membatalkan pesanan.
+                <br />
+                <strong>2. Batas Pengiriman 1x24 Jam:</strong> Setelah pesanan dikonfirmasi, Anda memiliki waktu <strong>1x24 jam</strong> untuk menyiapkan karya kriya, melakukan packing aman, mengirimkannya via kurir/ekspedisi, dan menginput nomor resi resmi.
+              </p>
+            </div>
+
+            {/* Orders List */}
+            {orders.length === 0 ? (
+              <div className="bg-white p-12 text-center rounded-2xl border border-dashed border-[#E8DFD5] space-y-3">
+                <div className="w-12 h-12 mx-auto rounded-full bg-[#FAF7F2] text-[#8C533C] flex items-center justify-center">
+                  <Package className="w-6 h-6" />
+                </div>
+                <h4 className="font-serif text-base font-bold text-[#2C221E]">
+                  Belum Ada Pesanan Masuk
+                </h4>
+                <p className="text-xs text-[#7A7067] max-w-md mx-auto">
+                  Saat pembeli menyelesaikan pembayaran untuk produk kriya Anda, pesanan akan langsung muncul di sini untuk dikonfirmasi.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {orders.map((ord) => (
+                  <div
+                    key={ord.orderId}
+                    className="bg-white rounded-2xl border border-[#E8DFD5] p-5 sm:p-6 shadow-xs hover:border-[#D5C6B7] transition-all space-y-4"
+                  >
+                    {/* Header bar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#F2ECE3] pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="font-mono text-base font-bold text-[#8C533C]">
+                          #{ord.orderId}
+                        </span>
+                        <span className="text-xs text-[#7A7067]">·</span>
+                        <span className="text-xs text-[#7A7067]">{ord.date}</span>
+                        <span className="text-xs text-[#7A7067]">·</span>
+                        <span className="text-xs font-semibold text-[#2C221E]">
+                          {ord.customerName}
+                        </span>
+                      </div>
+
+                      {/* Status Badges */}
+                      <div className="flex items-center gap-2">
+                        {ord.orderStatus === 'menunggu_konfirmasi' && (
+                          <span className="text-xs px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-300">
+                            <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                            <span>Perlu Konfirmasi Pengrajin</span>
+                          </span>
+                        )}
+                        {ord.orderStatus === 'diproses' && (
+                          <span className="text-xs px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5 bg-[#F2EAE1] text-[#8C533C] border border-[#E8DFD5]">
+                            <Package className="w-3.5 h-3.5 text-[#8C533C]" />
+                            <span>Diproses (Batas 1x24 Jam)</span>
+                          </span>
+                        )}
+                        {ord.orderStatus === 'dikirim' && (
+                          <span className="text-xs px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200">
+                            <Truck className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Dalam Pengiriman</span>
+                          </span>
+                        )}
+                        {ord.orderStatus === 'selesai' && (
+                          <span className="text-xs px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Selesai Diterima Customer</span>
+                          </span>
+                        )}
+                        {ord.orderStatus === 'dibatalkan' && (
+                          <span className="text-xs px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5 bg-red-50 text-red-700 border border-red-200">
+                            <XCircle className="w-3.5 h-3.5 text-red-600" />
+                            <span>Pesanan Dibatalkan</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Content Columns */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 text-xs">
+                      {/* Products */}
+                      <div className="md:col-span-5 space-y-2">
+                        <div className="font-bold text-[#8C533C] uppercase tracking-wider text-[11px]">
+                          Karya Dipesan:
+                        </div>
+                        <div className="space-y-1.5">
+                          {ord.items.map((it, idx) => (
+                            <div key={idx} className="flex justify-between items-center text-[#61574F]">
+                              <span className="font-medium text-[#2C221E]">
+                                {it.product.name} × {it.quantity}
+                              </span>
+                              <span className="font-mono text-[#8C533C]">
+                                {formatIDR(it.product.price * it.quantity)}
+                              </span>
+                            </div>
+                          ))}
+                          {ord.giftWrapping && (
+                            <div className="text-[11px] text-[#8C533C] font-semibold">
+                              + Bungkus Kado & Kartu Ucapan
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Recipient Address */}
+                      <div className="md:col-span-4 space-y-2">
+                        <div className="font-bold text-[#8C533C] uppercase tracking-wider text-[11px]">
+                          Tujuan Pengiriman:
+                        </div>
+                        <div className="text-[#2C221E] font-medium">
+                          {ord.customerName} ({ord.phone})
+                        </div>
+                        <div className="text-[#7A7067] leading-relaxed">
+                          {ord.address}, {ord.city}
+                        </div>
+                        <div className="text-[11px] text-[#8C533C] flex items-center gap-1">
+                          <Truck className="w-3.5 h-3.5" />
+                          <span>Kurir yang dipilih: {ord.shippingMethod}</span>
+                        </div>
+                      </div>
+
+                      {/* Actions & 1x24h countdown */}
+                      <div className="md:col-span-3 flex flex-col justify-between border-t md:border-t-0 md:border-l border-[#F2ECE3] pt-3 md:pt-0 md:pl-5 space-y-3">
+                        <div>
+                          <div className="text-[11px] text-[#7A7067]">Total Tagihan Pesanan:</div>
+                          <div className="text-base font-bold font-mono text-[#8C533C]">
+                            {formatIDR(ord.total)}
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="space-y-2">
+                          {ord.orderStatus === 'menunggu_konfirmasi' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (onConfirmOrderArtisan) {
+                                  onConfirmOrderArtisan(ord.orderId);
+                                }
+                              }}
+                              className="w-full py-2 px-3 bg-gradient-to-r from-emerald-700 to-emerald-800 hover:from-emerald-800 hover:to-emerald-900 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Konfirmasi Pesanan</span>
+                            </button>
+                          )}
+
+                          {ord.orderStatus === 'diproses' && (
+                            <div className="space-y-1.5">
+                              {ord.shipmentDeadline && (
+                                <div className="p-2 bg-amber-50 rounded-lg border border-amber-200 text-[10px] text-amber-900 space-y-0.5">
+                                  <div className="font-bold flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-amber-700" />
+                                    <span>Batas Waktu Pengiriman 1x24 Jam:</span>
+                                  </div>
+                                  <div className="font-mono font-semibold text-amber-950">
+                                    {ord.shipmentDeadline}
+                                  </div>
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShippingModalOrder(ord);
+                                  setShippingCourierInput(ord.shippingMethod.split(' ')[0] || 'J&T Express');
+                                  setTrackingNumberInput(`DKR-${ord.orderId}-${Math.floor(1000 + Math.random() * 9000)}`);
+                                }}
+                                className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all"
+                              >
+                                <Truck className="w-3.5 h-3.5" />
+                                <span>Kirim Pesanan & Input Resi</span>
+                              </button>
+                            </div>
+                          )}
+
+                          {ord.orderStatus === 'dikirim' && (
+                            <div className="p-2 bg-blue-50 rounded-lg border border-blue-100 text-[11px] text-blue-900 space-y-1">
+                              <div className="font-bold">Kurir: {ord.shippingCourier || 'Ekspedisi'}</div>
+                              <div className="font-mono text-xs font-bold truncate">Resi: {ord.shippingTrackingNumber || '-'}</div>
+                              <div className="text-[10px] text-blue-700">Dikirim: {ord.shippedAt || 'Hari Ini'}</div>
+                            </div>
+                          )}
+
+                          {ord.orderStatus === 'selesai' && (
+                            <div className="p-2 bg-emerald-50 rounded-lg border border-emerald-200 text-[11px] text-emerald-800 text-center font-semibold">
+                              ✓ Kriya Diterima & Escrow Dicairkan
+                            </div>
+                          )}
+
+                          {ord.orderStatus === 'dibatalkan' && (
+                            <div className="p-2 bg-red-50 rounded-lg border border-red-200 text-[11px] text-red-700 text-center">
+                              Pesanan Dibatalkan oleh Pelanggan
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* TAB 1: PENAWARAN KRIYA & CHAT DENGAN ADMIN */}
         {activeTab === 'proposals' && (
@@ -1546,6 +1854,278 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
             </div>
           </div>
         )}
+
+        {/* TAB 3: KELOLA STOK KRIYA & KODE BARANG 10-DIGIT */}
+        {activeTab === 'stock' && (
+          <div className="space-y-6">
+            {/* Rule & Specification Box */}
+            <div className="p-5 bg-gradient-to-r from-amber-50 to-orange-50/70 rounded-2xl border border-amber-200 shadow-xs space-y-3">
+              <div className="flex items-center gap-2 font-bold text-sm text-[#8C533C]">
+                <Tag className="w-4 h-4 text-[#8C533C]" />
+                <span>Ketentuan Kode Barang 10-Digit & Maintenance Stok Pengrajin</span>
+              </div>
+              
+              <div className="text-xs text-[#5C4524] leading-relaxed space-y-2">
+                <p>
+                  <strong>1. Struktur Kode Barang (10 Digit Heksadesimal):</strong>
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
+                  <div className="p-3 bg-white/90 rounded-xl border border-amber-200">
+                    <span className="font-bold text-[#8C533C] block mb-0.5">Digit 1 - 5 (Heksa)</span>
+                    <strong className="text-[#2C221E] font-mono">Nomor Urut Pengrajin</strong>
+                    <p className="text-[11px] text-[#7A7067] mt-0.5">Pengrajin #1 = <code className="font-mono font-bold text-[#8C533C]">00001</code>, #2 = <code className="font-mono font-bold text-[#8C533C]">00002</code>, #10 = <code className="font-mono font-bold text-[#8C533C]">0000A</code></p>
+                  </div>
+                  <div className="p-3 bg-white/90 rounded-xl border border-amber-200">
+                    <span className="font-bold text-[#8C533C] block mb-0.5">Digit 6 - 7 (Heksa)</span>
+                    <strong className="text-[#2C221E] font-mono">Kode Bahan Baku Kriya</strong>
+                    <p className="text-[11px] text-[#7A7067] mt-0.5"><code className="font-mono font-bold text-[#8C533C]">01</code>: Keramik, <code className="font-mono font-bold text-[#8C533C]">02</code>: Anyaman, <code className="font-mono font-bold text-[#8C533C]">03</code>: Kayu, <code className="font-mono font-bold text-[#8C533C]">04</code>: Lilin, <code className="font-mono font-bold text-[#8C533C]">05</code>: Tekstil</p>
+                  </div>
+                  <div className="p-3 bg-white/90 rounded-xl border border-amber-200">
+                    <span className="font-bold text-[#8C533C] block mb-0.5">Digit 8 - 10 (Heksa)</span>
+                    <strong className="text-[#2C221E] font-mono">Nomor Urut Barang</strong>
+                    <p className="text-[11px] text-[#7A7067] mt-0.5">Barang ke-1 = <code className="font-mono font-bold text-[#8C533C]">001</code>, ke-2 = <code className="font-mono font-bold text-[#8C533C]">002</code>, ke-16 = <code className="font-mono font-bold text-[#8C533C]">010</code></p>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-white/90 rounded-xl border border-amber-200 flex items-start gap-2.5">
+                  <PackageX className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-[#2C221E]">2. Ketentuan Stok 0 & Foto Buram:</strong>
+                    <p className="text-[11px] text-[#5C4524] mt-0.5">
+                      Jumlah stok dimaintain langsung oleh pengrajin. Jika Anda mengatur stok menjadi <strong>0 unit</strong>, foto barang di etalase toko dekorasiku otomatis ditampilkan <strong>buram (blurred)</strong> dengan badge peringatan <em>"Stok Habis (0)"</em> dan tombol pembelian dinonaktifkan hingga Anda menambah stok kembali.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-[#E8DFD5]">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setStockFilterMode('all')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    stockFilterMode === 'all'
+                      ? 'bg-[#2C221E] text-white'
+                      : 'bg-[#FAF7F2] text-[#574E47] hover:bg-[#F2EAE1]'
+                  }`}
+                >
+                  Semua Kriya di Toko ({catalogProducts.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStockFilterMode('mine')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    stockFilterMode === 'mine'
+                      ? 'bg-[#2C221E] text-white'
+                      : 'bg-[#FAF7F2] text-[#574E47] hover:bg-[#F2EAE1]'
+                  }`}
+                >
+                  Kriya Usaha Saya ({catalogProducts.filter(checkIsMine).length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStockFilterMode('out_of_stock')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    stockFilterMode === 'out_of_stock'
+                      ? 'bg-red-700 text-white'
+                      : 'bg-red-50 text-red-700 hover:bg-red-100'
+                  }`}
+                >
+                  Stok 0 / Foto Buram ({catalogProducts.filter((p) => p.stock === 0).length})
+                </button>
+              </div>
+
+              <div className="relative min-w-[220px]">
+                <input
+                  type="text"
+                  placeholder="Cari kode (#0000101001), kriya, usaha..."
+                  value={stockSearchQuery}
+                  onChange={(e) => setStockSearchQuery(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs bg-[#FAF7F2] border border-[#E8DFD5] rounded-lg focus:outline-none focus:border-[#8C533C]"
+                />
+              </div>
+            </div>
+
+            {/* List of Products for Stock Maintenance */}
+            <div className="space-y-4">
+              {filteredStockProducts.map((p) => {
+                const isOutOfStock = p.stock <= 0;
+                const parsed = parseProductCode(p.productCode);
+                const currentInputValue = customStockInputs[p.id] ?? String(p.stock);
+
+                return (
+                  <div
+                    key={p.id}
+                    className={`bg-white rounded-2xl border p-4 sm:p-5 shadow-xs transition-all ${
+                      isOutOfStock ? 'border-red-200 bg-red-50/20' : 'border-[#E8DFD5]'
+                    }`}
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+                      {/* Product Image (Buram jika stok 0) */}
+                      <div className="md:col-span-3">
+                        <div className="relative aspect-4/3 w-full rounded-xl overflow-hidden border border-[#E8DFD5] bg-[#F5EFEB]">
+                          <img
+                            src={p.image}
+                            alt={p.name}
+                            className={`w-full h-full object-cover transition-all duration-300 ${
+                              isOutOfStock ? 'filter blur-[4px] grayscale-[35%] opacity-75' : ''
+                            }`}
+                          />
+                          {isOutOfStock && (
+                            <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] flex flex-col items-center justify-center p-2 text-center">
+                              <span className="px-2 py-0.5 bg-red-600 text-white text-[10px] font-bold uppercase rounded shadow-xs">
+                                Stok 0 · Foto Buram
+                              </span>
+                              <span className="text-[9px] text-white/90 mt-1">
+                                Tampil buram di toko
+                              </span>
+                            </div>
+                          )}
+                          <div className="absolute top-2 left-2 bg-[#2C221E]/90 text-white text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border border-white/20">
+                            #{p.productCode}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Product Metadata & 10-Digit Code Breakdown */}
+                      <div className="md:col-span-5 space-y-2">
+                        {/* Nama Usaha Pengrajin */}
+                        <div className="flex items-center gap-1.5 text-xs text-[#8C533C] font-bold">
+                          <Store className="w-3.5 h-3.5" />
+                          <span>{p.artisan.workshopName}</span>
+                          <span className="text-[#A89F95] font-normal">({p.artisan.location})</span>
+                        </div>
+
+                        <h4 className="font-serif text-base font-bold text-[#2C221E]">
+                          {p.name}
+                        </h4>
+
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="font-mono font-bold text-[#8C533C]">{formatIDR(p.price)}</span>
+                          <span className="text-[#D5C6B7]">·</span>
+                          <span className="text-[#7A7067]">{p.categoryLabel}</span>
+                        </div>
+
+                        {/* Breakdown 10 Digit Hex */}
+                        <div className="p-2.5 bg-[#FAF7F2] rounded-lg border border-[#E8DFD5] text-[11px] space-y-1">
+                          <div className="flex items-center justify-between font-mono font-bold text-[#2C221E]">
+                            <span>Kode: #{p.productCode}</span>
+                            <span className="text-[10px] text-[#7A7067] font-sans font-normal">(10 Digit Hexa)</span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1 pt-1 text-[10px] text-[#574E47]">
+                            <div>Pengrajin: <strong className="font-mono font-bold text-[#8C533C]">{parsed.artisanHex}</strong></div>
+                            <div>Bahan: <strong className="font-mono font-bold text-[#8C533C]">{parsed.materialHex}</strong></div>
+                            <div>Barang: <strong className="font-mono font-bold text-[#8C533C]">{parsed.itemHex}</strong></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Stock Maintainer Controls */}
+                      <div className="md:col-span-4 flex flex-col justify-between border-t md:border-t-0 md:border-l border-[#F2ECE3] pt-3 md:pt-0 md:pl-5 space-y-3">
+                        <div>
+                          <div className="text-[11px] text-[#7A7067] font-medium">Status Stok Saat Ini:</div>
+                          <div className="flex items-center gap-2 mt-1">
+                            {isOutOfStock ? (
+                              <span className="px-2.5 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-lg border border-red-200">
+                                Stok: 0 Unit (Habis - Foto Buram)
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-200">
+                                Stok Tersedia: {p.stock} Unit
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Quick Stepper & Simulation Buttons */}
+                        <div className="space-y-2">
+                          <div className="text-[11px] text-[#574E47] font-semibold">Ubah Stok Kriya:</div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => onUpdateProductStock && onUpdateProductStock(p.id, Math.max(0, p.stock - 1))}
+                              className="px-2.5 py-1 bg-[#FAF7F2] hover:bg-[#F2EAE1] text-[#2C221E] text-xs font-bold rounded-md border border-[#E8DFD5] cursor-pointer"
+                            >
+                              -1
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onUpdateProductStock && onUpdateProductStock(p.id, p.stock + 1)}
+                              className="px-2.5 py-1 bg-[#FAF7F2] hover:bg-[#F2EAE1] text-[#2C221E] text-xs font-bold rounded-md border border-[#E8DFD5] cursor-pointer"
+                            >
+                              +1
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onUpdateProductStock && onUpdateProductStock(p.id, p.stock + 5)}
+                              className="px-2.5 py-1 bg-[#FAF7F2] hover:bg-[#F2EAE1] text-[#2C221E] text-xs font-bold rounded-md border border-[#E8DFD5] cursor-pointer"
+                            >
+                              +5
+                            </button>
+
+                            {/* Tombol Khusus untuk Menguji Syarat: Jika stock 0 foto barang buram */}
+                            <button
+                              type="button"
+                              onClick={() => onUpdateProductStock && onUpdateProductStock(p.id, 0)}
+                              className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold rounded-md shadow-xs cursor-pointer"
+                              title="Setel stok menjadi 0 untuk menguji efek foto barang buram di toko"
+                            >
+                              Set 0 (Tes Buram)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onUpdateProductStock && onUpdateProductStock(p.id, 10)}
+                              className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold rounded-md shadow-xs cursor-pointer"
+                            >
+                              Restok 10
+                            </button>
+                          </div>
+
+                          {/* Custom Number Input */}
+                          <div className="flex items-center gap-2 pt-1">
+                            <input
+                              type="number"
+                              min="0"
+                              value={currentInputValue}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setCustomStockInputs((prev) => ({ ...prev, [p.id]: val }));
+                              }}
+                              className="w-20 px-2.5 py-1 text-xs bg-[#FAF7F2] border border-[#E8DFD5] rounded-lg font-mono font-bold focus:outline-none focus:border-[#8C533C]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const num = parseInt(currentInputValue, 10);
+                                if (!isNaN(num) && onUpdateProductStock) {
+                                  onUpdateProductStock(p.id, Math.max(0, num));
+                                }
+                              }}
+                              className="px-3 py-1 bg-[#2C221E] hover:bg-[#8C533C] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                            >
+                              Simpan Stok
+                            </button>
+                            <button
+                              type="button"
+                              onClick={onBackToStore}
+                              className="text-[11px] text-[#8C533C] hover:underline flex items-center gap-1 font-semibold ml-auto cursor-pointer"
+                              title="Lihat tampilan di toko"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Lihat di Toko</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* MODAL 1: BUAT USULAN KRIYA BARU */}
@@ -1841,6 +2421,129 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Terbitkan Kriya ke Toko Sekarang</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Input Nomor Resi Pengiriman oleh Pengrajin */}
+      {shippingModalOrder && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+          onClick={() => setShippingModalOrder(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E8DFD5] space-y-5 my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-[#F2ECE3]">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-blue-50 text-blue-700 rounded-lg">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-base font-bold text-[#2C221E]">
+                    Kirim & Input Resi Pengiriman Kriya
+                  </h3>
+                  <p className="text-xs text-[#7A7067]">
+                    Pesanan #{shippingModalOrder.orderId} · {shippingModalOrder.customerName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShippingModalOrder(null)}
+                className="p-1 rounded-lg text-[#7A7067] hover:text-[#2C221E] hover:bg-[#F2EAE1] cursor-pointer"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 1x24h Reminder Box */}
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+              <div className="font-bold flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-amber-700" />
+                <span>Ketentuan Batas Pengiriman Kriya (1x24 Jam)</span>
+              </div>
+              <p className="text-[11px] text-amber-800 leading-relaxed">
+                Pengrajin wajib mengirimkan paket kriya dan menginput nomor resi resmi maksimal 1x24 jam setelah pesanan dikonfirmasi.
+              </p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!trackingNumberInput.trim()) return;
+                if (onShipOrder) {
+                  onShipOrder(shippingModalOrder.orderId, trackingNumberInput.trim(), shippingCourierInput);
+                }
+                setShippingModalOrder(null);
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label className="block font-bold text-[#574E47] mb-1">Pilih Ekspedisi / Kurir Pengiriman:</label>
+                <select
+                  value={shippingCourierInput}
+                  onChange={(e) => setShippingCourierInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E8DFD5] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8C533C]"
+                >
+                  <option value="J&T Express">J&T Express (Reguler / EZ)</option>
+                  <option value="JNE Express">JNE Express (YES / REG)</option>
+                  <option value="SiCepat Ekspres">SiCepat Ekspres (GOKIL / BEST)</option>
+                  <option value="Pos Indonesia">Pos Indonesia (Kilat Khusus)</option>
+                  <option value="GoSend Instant">GoSend Instant (Kurir Khusus Area Jogja)</option>
+                  <option value="Lion Parcel">Lion Parcel (REGPACK)</option>
+                  <option value="Anteraja">Anteraja (Regular)</option>
+                </select>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-bold text-[#574E47]">Nomor Resi Pengiriman Resmi:</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTrackingNumberInput(`DKR-${shippingModalOrder.orderId}-${Math.floor(1000 + Math.random() * 9000)}`);
+                    }}
+                    className="text-[10px] text-[#8C533C] hover:underline font-semibold cursor-pointer"
+                  >
+                    + Generate Resi Acak
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: JNT-9823104928"
+                  value={trackingNumberInput}
+                  onChange={(e) => setTrackingNumberInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E8DFD5] rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-[#8C533C]"
+                />
+              </div>
+
+              <div className="p-3 bg-[#FAF7F2] rounded-lg border border-[#E8DFD5] text-[11px] text-[#7A7067] space-y-1">
+                <div><strong>Alamat Tujuan:</strong> {shippingModalOrder.address}, {shippingModalOrder.city}</div>
+                <div><strong>Penerima:</strong> {shippingModalOrder.customerName} ({shippingModalOrder.phone})</div>
+                <div><strong>Kriya:</strong> {shippingModalOrder.items.map((it) => `${it.product.name} (${it.quantity})`).join(', ')}</div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShippingModalOrder(null)}
+                  className="px-4 py-2 border border-[#E8DFD5] text-[#574E47] hover:bg-[#F2EAE1] rounded-lg font-semibold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={!trackingNumberInput.trim()}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>Kirim Pesanan & Terbitkan Resi</span>
                 </button>
               </div>
             </form>

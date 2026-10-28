@@ -52,6 +52,8 @@ interface AdminDashboardProps {
   artisans?: Artisan[];
   onBackToStore: () => void;
   onUpdateOrderStatus: (orderId: string, newStatus: OrderDetails['orderStatus']) => void;
+  onConfirmOrderArtisan?: (orderId: string) => void;
+  onShipOrder?: (orderId: string, trackingNumber: string, courierName: string) => void;
   onVerifyPayment: (orderId: string, mode: 'otomatis' | 'manual') => void;
   onAdminSendMessage: (customerId: string, customerEmail: string, text: string) => void;
   onApproveProposal: (proposalId: string) => void;
@@ -71,6 +73,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   artisans = [],
   onBackToStore,
   onUpdateOrderStatus,
+  onConfirmOrderArtisan,
+  onShipOrder,
   onVerifyPayment,
   onAdminSendMessage,
   onApproveProposal,
@@ -89,6 +93,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     proposals.length > 0 ? proposals[0].id : 'prop-101'
   );
   const [proposalChatInput, setProposalChatInput] = useState<string>('');
+
+  // Shipping Tracking Modal State
+  const [shippingModalOrder, setShippingModalOrder] = useState<OrderDetails | null>(null);
+  const [shippingCourierInput, setShippingCourierInput] = useState<string>('J&T Express');
+  const [trackingNumberInput, setTrackingNumberInput] = useState<string>('');
 
   // Artisan Verification Filter & Search State
   const [artisanFilter, setArtisanFilter] = useState<'all' | 'menunggu_verifikasi' | 'disetujui'>('all');
@@ -124,12 +133,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   ).length;
 
   const unreadChats = chatMessages.filter((m) => m.sender === 'customer' && !m.read).length;
+  const awaitingConfirmationCount = orders.filter((o) => o.orderStatus === 'menunggu_konfirmasi').length;
 
   // Filtered orders list
   const filteredOrders = orders.filter((o) => {
     const matchesFilter =
       orderFilter === 'all' ||
       (orderFilter === 'pending_payment' && o.paymentStatus === 'menunggu_pembayaran') ||
+      (orderFilter === 'awaiting_confirmation' && o.orderStatus === 'menunggu_konfirmasi') ||
       (orderFilter === 'processing' && o.orderStatus === 'diproses') ||
       (orderFilter === 'shipped' && o.orderStatus === 'dikirim') ||
       (orderFilter === 'completed' && o.orderStatus === 'selesai');
@@ -449,6 +460,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   Perlu Bayar ({pendingPayments})
                 </button>
                 <button
+                  onClick={() => setOrderFilter('awaiting_confirmation')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap ${
+                    orderFilter === 'awaiting_confirmation'
+                      ? 'bg-amber-700 text-white shadow-xs'
+                      : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
+                  }`}
+                >
+                  Perlu Konfirmasi ({awaitingConfirmationCount})
+                </button>
+                <button
                   onClick={() => setOrderFilter('processing')}
                   className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap ${
                     orderFilter === 'processing'
@@ -554,15 +575,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <span
                           className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
                             order.orderStatus === 'selesai'
-                              ? 'bg-gray-100 text-gray-700'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                               : order.orderStatus === 'dikirim'
                               ? 'bg-blue-100 text-blue-800'
                               : order.orderStatus === 'diproses'
                               ? 'bg-[#F2EAE1] text-[#8C533C]'
-                              : 'bg-amber-100 text-amber-800'
+                              : order.orderStatus === 'menunggu_konfirmasi'
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                              : order.orderStatus === 'dibatalkan'
+                              ? 'bg-red-50 text-red-700 border border-red-200'
+                              : 'bg-amber-50 text-amber-800'
                           }`}
                         >
-                          Status: {order.orderStatus.toUpperCase()}
+                          Status: {order.orderStatus === 'menunggu_konfirmasi' ? 'MENUNGGU KONFIRMASI PENGRAJIN' : order.orderStatus.replace('_', ' ').toUpperCase()}
                         </span>
                       </div>
                     </div>
@@ -634,32 +659,86 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
 
                         {/* Order Status Action Buttons */}
-                        <div className="pt-3 space-y-1.5">
+                        <div className="pt-3 space-y-2">
+                          {order.orderStatus === 'menunggu_konfirmasi' && (
+                            <div className="space-y-1">
+                              <button
+                                onClick={() => {
+                                  if (onConfirmOrderArtisan) {
+                                    onConfirmOrderArtisan(order.orderId);
+                                  } else {
+                                    onUpdateOrderStatus(order.orderId, 'diproses');
+                                  }
+                                }}
+                                className="w-full py-2 bg-gradient-to-r from-emerald-700 to-emerald-800 hover:from-emerald-800 hover:to-emerald-900 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Konfirmasi Pesanan (Pengrajin)</span>
+                              </button>
+                              <p className="text-[10px] text-[#7A7067] text-center">
+                                Mulai tenggat 1x24 jam pengiriman & resi
+                              </p>
+                            </div>
+                          )}
+
+                          {order.orderStatus === 'diproses' && (
+                            <div className="space-y-1.5">
+                              {order.shipmentDeadline && (
+                                <div className="p-1.5 bg-amber-50 rounded border border-amber-200 text-[10px] text-amber-900 flex items-center justify-between">
+                                  <span className="font-semibold flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-amber-700" />
+                                    <span>Batas 1x24 Jam:</span>
+                                  </span>
+                                  <span className="font-mono font-bold text-amber-800 truncate ml-1">{order.shipmentDeadline}</span>
+                                </div>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setShippingModalOrder(order);
+                                  setShippingCourierInput(order.shippingMethod.split(' ')[0] || 'J&T Express');
+                                  setTrackingNumberInput(`DKR-${order.orderId}-${Math.floor(1000 + Math.random() * 9000)}`);
+                                }}
+                                className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all"
+                              >
+                                <Truck className="w-3.5 h-3.5" />
+                                <span>Kirim Pesanan & Input Resi</span>
+                              </button>
+                            </div>
+                          )}
+
+                          {order.orderStatus === 'dikirim' && (
+                            <div className="space-y-1.5">
+                              <div className="p-1.5 bg-blue-50 rounded border border-blue-100 text-[10px] text-blue-900">
+                                <div className="font-bold">{order.shippingCourier || 'Kurir Ekspedisi'}</div>
+                                <div className="font-mono text-[11px] truncate">Resi: {order.shippingTrackingNumber || '-'}</div>
+                              </div>
+                              <button
+                                onClick={() => onUpdateOrderStatus(order.orderId, 'selesai')}
+                                className="w-full py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Tandai Sampai & Selesai</span>
+                              </button>
+                            </div>
+                          )}
+
                           {order.orderStatus === 'menunggu_pembayaran' && (
                             <button
-                              onClick={() => onUpdateOrderStatus(order.orderId, 'diproses')}
-                              className="w-full py-1.5 bg-[#8C533C] hover:bg-[#73432F] text-white rounded text-xs font-semibold"
+                              onClick={() => onVerifyPayment(order.orderId, 'manual')}
+                              className="w-full py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
                             >
-                              Proses Pesanan Kriya
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Verifikasi Pembayaran Manual</span>
                             </button>
                           )}
-                          {order.orderStatus === 'diproses' && (
-                            <button
-                              onClick={() => onUpdateOrderStatus(order.orderId, 'dikirim')}
-                              className="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold flex items-center justify-center gap-1"
-                            >
-                              <Truck className="w-3.5 h-3.5" />
-                              <span>Kirim Paket (Karier)</span>
-                            </button>
-                          )}
-                          {order.orderStatus === 'dikirim' && (
-                            <button
-                              onClick={() => onUpdateOrderStatus(order.orderId, 'selesai')}
-                              className="w-full py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-xs font-semibold flex items-center justify-center gap-1"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Tandai Sampai & Selesai</span>
-                            </button>
+
+                          {order.orderStatus === 'dibatalkan' && (
+                            <div className="text-center p-2 bg-red-50 text-red-700 rounded-lg border border-red-200 text-[11px] space-y-0.5">
+                              <div className="font-bold">Pesanan Dibatalkan</div>
+                              {order.refundStatus === 'proses_refund' && (
+                                <div className="text-[10px] text-red-600">Refund 100% diproses</div>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1568,6 +1647,131 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
       </main>
+
+      {/* Modal Input Nomor Resi Pengiriman */}
+      {shippingModalOrder && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+          onClick={() => setShippingModalOrder(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E8DFD5] space-y-5 my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-[#F2ECE3]">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-blue-50 text-blue-700 rounded-lg">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-base font-bold text-[#2C221E]">
+                    Kirim & Input Resi Pengiriman
+                  </h3>
+                  <p className="text-xs text-[#7A7067]">
+                    Pesanan #{shippingModalOrder.orderId} · {shippingModalOrder.customerName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShippingModalOrder(null)}
+                className="p-1 rounded-lg text-[#7A7067] hover:text-[#2C221E] hover:bg-[#F2EAE1] cursor-pointer"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 1x24h Reminder Box */}
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+              <div className="font-bold flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-amber-700" />
+                <span>Ketentuan Batas Pengiriman Kriya (1x24 Jam)</span>
+              </div>
+              <p className="text-[11px] text-amber-800 leading-relaxed">
+                Pengrajin wajib mengirimkan paket dan menginput nomor resi resmi ekspedisi maksimal 1x24 jam setelah pesanan dikonfirmasi.
+              </p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!trackingNumberInput.trim()) return;
+                if (onShipOrder) {
+                  onShipOrder(shippingModalOrder.orderId, trackingNumberInput.trim(), shippingCourierInput);
+                } else {
+                  onUpdateOrderStatus(shippingModalOrder.orderId, 'dikirim');
+                }
+                setShippingModalOrder(null);
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label className="block font-bold text-[#574E47] mb-1">Pilih Ekspedisi / Kurir:</label>
+                <select
+                  value={shippingCourierInput}
+                  onChange={(e) => setShippingCourierInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E8DFD5] rounded-lg text-xs font-medium focus:outline-none focus:border-[#8C533C]"
+                >
+                  <option value="J&T Express">J&T Express (Reguler / EZ)</option>
+                  <option value="JNE Express">JNE Express (YES / REG)</option>
+                  <option value="SiCepat Ekspres">SiCepat Ekspres (GOKIL / BEST)</option>
+                  <option value="Pos Indonesia">Pos Indonesia (Kilat Khusus)</option>
+                  <option value="GoSend Instant">GoSend Instant (Kurir Khusus Area Jogja)</option>
+                  <option value="Lion Parcel">Lion Parcel (REGPACK)</option>
+                  <option value="Anteraja">Anteraja (Regular)</option>
+                </select>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-bold text-[#574E47]">Nomor Resi Pengiriman:</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTrackingNumberInput(`DKR-${shippingModalOrder.orderId}-${Math.floor(1000 + Math.random() * 9000)}`);
+                    }}
+                    className="text-[10px] text-[#8C533C] hover:underline font-semibold cursor-pointer"
+                  >
+                    + Generate Resi Acak
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: JNT-9823104928"
+                  value={trackingNumberInput}
+                  onChange={(e) => setTrackingNumberInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E8DFD5] rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-[#8C533C]"
+                />
+              </div>
+
+              <div className="p-3 bg-[#FAF7F2] rounded-lg border border-[#E8DFD5] text-[11px] text-[#7A7067] space-y-1">
+                <div><strong>Alamat Tujuan:</strong> {shippingModalOrder.address}, {shippingModalOrder.city}</div>
+                <div><strong>Penerima:</strong> {shippingModalOrder.customerName} ({shippingModalOrder.phone})</div>
+                <div><strong>Kriya:</strong> {shippingModalOrder.items.map((it) => `${it.product.name} (${it.quantity})`).join(', ')}</div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShippingModalOrder(null)}
+                  className="px-4 py-2 border border-[#E8DFD5] text-[#574E47] hover:bg-[#F2EAE1] rounded-lg font-semibold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={!trackingNumberInput.trim()}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>Kirim Pesanan & Terbitkan Resi</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -87,17 +87,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-40 w-full bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#E8DFD5] transition-all max-w-full overflow-visible">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between gap-2 sm:gap-6">
-        {/* Zone 1: Brand Wordmark */}
+        {/* Zone 1: Brand Logo */}
         <a 
           href="#" 
-          className="group flex items-baseline gap-2 whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8C533C]"
+          className="group flex items-center gap-2.5 whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8C533C]"
+          title="dekorasiku - Studio Kerajinan & Dekorasi"
         >
-          <span className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-[#2C221E] group-hover:text-[#8C533C] transition-colors">
-            Kala Kriya
-          </span>
-          <span className="text-[10px] text-[#7A7067] font-medium tracking-widest hidden xl:inline">
-            STUDIO KERAJINAN
-          </span>
+          <img
+            src="/assets/aistudio/1000297830_4688d260.png"
+            alt="dekorasiku"
+            className="h-7 sm:h-8.5 w-auto object-contain transition-transform group-hover:scale-105"
+          />
         </a>
 
         {/* Zone 2: Desktop Clean Nav Links */}
