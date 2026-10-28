@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default catch-all deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Connection test document
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    // Live Orders: shared across customer devices, admin, and artisans
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create: if request.resource.data.orderId == orderId
+        && request.resource.data.total is number;
+      allow update: if request.resource.data.orderId == orderId;
+      allow delete: if false;
+    }
+
+    // Products: live stock synchronized between artisans and buyers
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Artisans: directory of partner artisans
+    match /artisans/{artisanId} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}

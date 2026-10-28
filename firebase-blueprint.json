@@ -1,0 +1,161 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "Customer order containing purchased items, status, shipping, and payment information",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "description": "Unique order identifier e.g. KK-1110"
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Customer recipient name"
+        },
+        "customerEmail": {
+          "type": "string",
+          "description": "Email of the customer who placed the order"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone number"
+        },
+        "address": {
+          "type": "string",
+          "description": "Delivery street address"
+        },
+        "city": {
+          "type": "string",
+          "description": "Destination city"
+        },
+        "shippingMethod": {
+          "type": "string",
+          "description": "Selected courier service"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Selected payment method"
+        },
+        "paymentStatus": {
+          "type": "string",
+          "description": "Payment verification status"
+        },
+        "orderStatus": {
+          "type": "string",
+          "description": "Order progression status: menunggu_konfirmasi, diproses, dikirim, selesai, dibatalkan"
+        },
+        "total": {
+          "type": "number",
+          "description": "Total order amount in IDR"
+        },
+        "date": {
+          "type": "string",
+          "description": "Human readable date"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": [
+        "orderId",
+        "customerName",
+        "customerEmail",
+        "orderStatus",
+        "total"
+      ]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Artisanal handcrafted product in catalog",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Product unique ID"
+        },
+        "productCode": {
+          "type": "string",
+          "description": "10-digit hexadecimal product code"
+        },
+        "name": {
+          "type": "string",
+          "description": "Product display name"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category slug"
+        },
+        "price": {
+          "type": "number",
+          "description": "Price in IDR"
+        },
+        "stock": {
+          "type": "number",
+          "description": "Available inventory units"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "price",
+        "stock"
+      ]
+    },
+    "Artisan": {
+      "title": "Artisan",
+      "description": "Registered artisan profile and workshop credentials",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Artisan ID"
+        },
+        "seqNumber": {
+          "type": "number",
+          "description": "Sequential artisan number for hexadecimal coding"
+        },
+        "name": {
+          "type": "string",
+          "description": "Artisan full name"
+        },
+        "workshopName": {
+          "type": "string",
+          "description": "Workshop or studio business name"
+        },
+        "location": {
+          "type": "string",
+          "description": "City and province of workshop"
+        },
+        "email": {
+          "type": "string",
+          "description": "Contact and login email"
+        },
+        "approvalStatus": {
+          "type": "string",
+          "description": "Approval status e.g. disetujui, menunggu, ditolak"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email"
+      ]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders with live updates for customers, artisans, and admins"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Handcrafted products with live stock tracking"
+    },
+    "/artisans/{artisanId}": {
+      "schema": "Artisan",
+      "description": "Verified artisan directory profiles"
+    }
+  }
+}

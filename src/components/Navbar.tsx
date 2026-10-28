@@ -254,6 +254,25 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
                   </button>
 
+                  {/* 4. Portal Pengrajin (Konfirmasi Pesanan & Kelola Stok) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      onOpenArtisanPortal();
+                    }}
+                    className="w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-[#FAF7F2] transition-colors text-xs text-[#2C221E] group cursor-pointer"
+                  >
+                    <div className="p-1.5 rounded-lg bg-[#FAF7F2] text-[#8C533C] group-hover:bg-[#8C533C] group-hover:text-white transition-colors">
+                      <Hammer className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-[#8C533C]">Portal Pengrajin</div>
+                      <div className="text-[10px] text-[#7A7067]">Konfirmasi pesanan masuk & stok kriya</div>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-[#A89F95] group-hover:text-[#8C533C] group-hover:translate-x-0.5 transition-all" />
+                  </button>
+
                   {/* Divider */}
                   <div className="my-1 border-t border-[#F2ECE3]" />
 

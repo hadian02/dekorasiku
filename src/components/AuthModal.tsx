@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Customer, ShippingAddress } from '../types';
+import { DEFAULT_HADIAN_CUSTOMER } from '../data/initialData';
 import { MapAddressPicker } from './MapAddressPicker';
 import { X, User, Mail, Phone, Lock, MapPin, Plus, Check, ShieldCheck, Hammer } from 'lucide-react';
 
@@ -51,28 +52,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    const cleanEmail = loginEmail.trim().toLowerCase();
+    if (cleanEmail === 'hadian02@gmail.com' || cleanEmail === 'hadian02') {
+      onLoginSuccess(DEFAULT_HADIAN_CUSTOMER);
+      onClose();
+      return;
+    }
+
     // Check if matching registered customer in storage
     const stored = localStorage.getItem('kala_kriya_registered_users');
     let users: Customer[] = stored ? JSON.parse(stored) : [];
 
-    const found = users.find((u) => u.email.toLowerCase() === loginEmail.toLowerCase());
+    const found = users.find((u) => u.email.toLowerCase() === cleanEmail);
 
     if (found) {
       onLoginSuccess(found);
       onClose();
     } else {
-      // Create user or fallback to demo profile
+      // Deterministic user ID based on email address (stays identical across PC & mobile)
+      const deterministicId = `cust-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
       const demoUser: Customer = {
-        id: `cust-${Date.now()}`,
-        name: loginEmail.split('@')[0].toUpperCase(),
-        email: loginEmail,
+        id: deterministicId,
+        name: cleanEmail.split('@')[0].toUpperCase(),
+        email: cleanEmail,
         phone: '0812-9876-5432',
         createdAt: new Date().toISOString(),
         addresses: [
           {
             id: 'addr-1',
             label: 'Rumah',
-            recipientName: loginEmail.split('@')[0],
+            recipientName: cleanEmail.split('@')[0],
             address: 'Jl. Kaliurang Km 5.2 No. 18, Sleman',
             city: 'Yogyakarta',
             postalCode: '55281',
@@ -83,7 +92,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {
             id: 'addr-2',
             label: 'Kantor / Studio',
-            recipientName: `${loginEmail.split('@')[0]} (Penerima)`,
+            recipientName: `${cleanEmail.split('@')[0]} (Penerima)`,
             address: 'Kawasan Kriya Kasongan No. 8',
             city: 'Bantul',
             postalCode: '55184',
