@@ -42,7 +42,8 @@ import {
   Tag,
   PackageX,
   Eye,
-  Layers
+  Layers,
+  Search
 } from 'lucide-react';
 import { parseProductCode } from '../utils/productCode';
 
@@ -139,6 +140,12 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
   const [stockFilterMode, setStockFilterMode] = useState<'all' | 'mine' | 'out_of_stock'>('all');
   const [customStockInputs, setCustomStockInputs] = useState<Record<string, string>>({});
 
+  // Order Tabs (5 requested tabs) & Search State for Artisan Portal
+  const [artisanOrderFilter, setArtisanOrderFilter] = useState<
+    'all' | 'pesanan_baru' | 'sudah_dikonfirmasi' | 'dikonfirmasi_belum_selesai' | 'selesai' | 'dibatalkan'
+  >('all');
+  const [artisanOrderSearch, setArtisanOrderSearch] = useState<string>('');
+
   // Shipping Modal State for Artisan
   const [shippingModalOrder, setShippingModalOrder] = useState<OrderDetails | null>(null);
   const [shippingCourierInput, setShippingCourierInput] = useState<string>('J&T Express');
@@ -190,6 +197,60 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
   const artisanProposals = artisan
     ? proposals.filter((p) => p.artisanId === artisan.id)
     : proposals;
+
+  // Filter orders relevant to this artisan
+  const artisanOrders = artisan
+    ? orders.filter((o) =>
+        o.items.some((it) => {
+          if (!it.product?.artisan) return true;
+          if (it.product.artisan.id && it.product.artisan.id === artisan.id) return true;
+          if (it.product.artisan.name && artisan.name && it.product.artisan.name.toLowerCase() === artisan.name.toLowerCase()) return true;
+          if (it.product.artisan.workshopName && artisan.workshopName && it.product.artisan.workshopName.toLowerCase() === artisan.workshopName.toLowerCase()) return true;
+          return false;
+        })
+      )
+    : orders;
+
+  const relevantOrders = artisanOrders.length > 0 ? artisanOrders : orders;
+
+  const pesananBaruCount = relevantOrders.filter(
+    (o) =>
+      (o.orderStatus === 'menunggu_konfirmasi' || o.orderStatus === 'menunggu_pembayaran') &&
+      o.paymentStatus !== 'batal'
+  ).length;
+
+  const sudahDikonfirmasiCount = relevantOrders.filter((o) => o.orderStatus === 'diproses').length;
+
+  const dikonfirmasiBelumSelesaiCount = relevantOrders.filter((o) => o.orderStatus === 'dikirim').length;
+
+  const pesananSelesaiCount = relevantOrders.filter((o) => o.orderStatus === 'selesai').length;
+
+  const pesananDibatalkanCount = relevantOrders.filter(
+    (o) => o.orderStatus === 'dibatalkan' || o.paymentStatus === 'batal'
+  ).length;
+
+  // Filtered orders for the active order tab & search in Artisan Portal
+  const filteredArtisanOrders = relevantOrders.filter((ord) => {
+    const matchesFilter =
+      artisanOrderFilter === 'all' ||
+      (artisanOrderFilter === 'pesanan_baru' &&
+        (ord.orderStatus === 'menunggu_konfirmasi' || ord.orderStatus === 'menunggu_pembayaran') &&
+        ord.paymentStatus !== 'batal') ||
+      (artisanOrderFilter === 'sudah_dikonfirmasi' && ord.orderStatus === 'diproses') ||
+      (artisanOrderFilter === 'dikonfirmasi_belum_selesai' && ord.orderStatus === 'dikirim') ||
+      (artisanOrderFilter === 'selesai' && ord.orderStatus === 'selesai') ||
+      (artisanOrderFilter === 'dibatalkan' && (ord.orderStatus === 'dibatalkan' || ord.paymentStatus === 'batal'));
+
+    const matchesSearch =
+      artisanOrderSearch.trim() === '' ||
+      ord.orderId.toLowerCase().includes(artisanOrderSearch.toLowerCase()) ||
+      ord.customerName.toLowerCase().includes(artisanOrderSearch.toLowerCase()) ||
+      ord.city.toLowerCase().includes(artisanOrderSearch.toLowerCase()) ||
+      (ord.shippingTrackingNumber && ord.shippingTrackingNumber.toLowerCase().includes(artisanOrderSearch.toLowerCase())) ||
+      ord.items.some((it) => it.product.name.toLowerCase().includes(artisanOrderSearch.toLowerCase()));
+
+    return matchesFilter && matchesSearch;
+  });
 
   // Helper untuk mengecek apakah kriya milik pengrajin yang sedang login
   const checkIsMine = (p: Product): boolean => {
@@ -1321,22 +1382,201 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
               </p>
             </div>
 
+            {/* Filter & Search Bar for Artisan Orders */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-[#E8DFD5] shadow-xs">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none text-xs">
+                {/* Tab: Semua */}
+                <button
+                  type="button"
+                  onClick={() => setArtisanOrderFilter('all')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                    artisanOrderFilter === 'all'
+                      ? 'bg-[#2C221E] text-white shadow-xs font-bold'
+                      : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
+                  }`}
+                >
+                  <span>Semua</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums ${
+                      artisanOrderFilter === 'all' ? 'bg-white/20 text-white font-bold' : 'bg-[#E8DFD5] text-[#554C45]'
+                    }`}
+                  >
+                    {relevantOrders.length}
+                  </span>
+                </button>
+
+                {/* Tab 1: Pesanan Baru */}
+                <button
+                  type="button"
+                  onClick={() => setArtisanOrderFilter('pesanan_baru')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                    artisanOrderFilter === 'pesanan_baru'
+                      ? 'bg-amber-700 text-white shadow-xs font-bold ring-1 ring-amber-800'
+                      : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
+                  }`}
+                  title="Pesanan baru masuk yang menunggu konfirmasi kesiapan kriya dari Anda"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Pesanan Baru</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums font-bold ${
+                      artisanOrderFilter === 'pesanan_baru'
+                        ? 'bg-white text-amber-900'
+                        : pesananBaruCount > 0
+                        ? 'bg-amber-200 text-amber-900'
+                        : 'bg-[#E8DFD5] text-[#554C45]'
+                    }`}
+                  >
+                    {pesananBaruCount}
+                  </span>
+                </button>
+
+                {/* Tab 2: Pesanan yang Sudah Dikonfirmasi */}
+                <button
+                  type="button"
+                  onClick={() => setArtisanOrderFilter('sudah_dikonfirmasi')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                    artisanOrderFilter === 'sudah_dikonfirmasi'
+                      ? 'bg-[#8C533C] text-white shadow-xs font-bold ring-1 ring-[#73432F]'
+                      : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
+                  }`}
+                  title="Pesanan yang sudah Anda konfirmasi dan sedang dalam persiapan/packing (Batas 1x24 jam)"
+                >
+                  <Package className="w-3.5 h-3.5" />
+                  <span>Sudah Dikonfirmasi</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums font-bold ${
+                      artisanOrderFilter === 'sudah_dikonfirmasi'
+                        ? 'bg-white text-[#8C533C]'
+                        : 'bg-[#E8DFD5] text-[#554C45]'
+                    }`}
+                  >
+                    {sudahDikonfirmasiCount}
+                  </span>
+                </button>
+
+                {/* Tab 3: Pesanan yang Sudah Dikonfirmasi tapi Belum Selesai */}
+                <button
+                  type="button"
+                  onClick={() => setArtisanOrderFilter('dikonfirmasi_belum_selesai')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                    artisanOrderFilter === 'dikonfirmasi_belum_selesai'
+                      ? 'bg-blue-600 text-white shadow-xs font-bold ring-1 ring-blue-700'
+                      : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
+                  }`}
+                  title="Pesanan yang sudah dikirim ke ekspedisi, belum selesai karena menunggu konfirmasi penerimaan pembeli"
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>Dikonfirmasi Belum Selesai</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums font-bold ${
+                      artisanOrderFilter === 'dikonfirmasi_belum_selesai'
+                        ? 'bg-white text-blue-900'
+                        : 'bg-blue-100 text-blue-800'
+                    }`}
+                  >
+                    {dikonfirmasiBelumSelesaiCount}
+                  </span>
+                </button>
+
+                {/* Tab 4: Pesanan yang Sudah Selesai */}
+                <button
+                  type="button"
+                  onClick={() => setArtisanOrderFilter('selesai')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                    artisanOrderFilter === 'selesai'
+                      ? 'bg-emerald-700 text-white shadow-xs font-bold ring-1 ring-emerald-800'
+                      : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
+                  }`}
+                  title="Pesanan yang telah selesai diterima oleh pembeli dan dana escrow siap dicairkan"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Pesanan Selesai</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums font-bold ${
+                      artisanOrderFilter === 'selesai'
+                        ? 'bg-white text-emerald-900'
+                        : 'bg-emerald-100 text-emerald-800'
+                    }`}
+                  >
+                    {pesananSelesaiCount}
+                  </span>
+                </button>
+
+                {/* Tab 5: Pesanan yang Dibatalkan */}
+                <button
+                  type="button"
+                  onClick={() => setArtisanOrderFilter('dibatalkan')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                    artisanOrderFilter === 'dibatalkan'
+                      ? 'bg-red-600 text-white shadow-xs font-bold ring-1 ring-red-700'
+                      : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
+                  }`}
+                  title="Pesanan kriya yang dibatalkan"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>Dibatalkan</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums font-bold ${
+                      artisanOrderFilter === 'dibatalkan'
+                        ? 'bg-white text-red-900'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {pesananDibatalkanCount}
+                  </span>
+                </button>
+              </div>
+
+              {/* Search Order in Artisan Portal */}
+              <div className="relative min-w-[220px]">
+                <Search className="w-4 h-4 text-[#A89F95] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Cari ID pesanan, nama kriya, kota..."
+                  value={artisanOrderSearch}
+                  onChange={(e) => setArtisanOrderSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#FAF7F2] border border-[#E8DFD5] rounded-lg focus:outline-none focus:border-[#8C533C]"
+                />
+              </div>
+            </div>
+
             {/* Orders List */}
-            {orders.length === 0 ? (
+            {filteredArtisanOrders.length === 0 ? (
               <div className="bg-white p-12 text-center rounded-2xl border border-dashed border-[#E8DFD5] space-y-3">
                 <div className="w-12 h-12 mx-auto rounded-full bg-[#FAF7F2] text-[#8C533C] flex items-center justify-center">
-                  <Package className="w-6 h-6" />
+                  {artisanOrderFilter === 'pesanan_baru' && <Clock className="w-6 h-6 text-amber-600" />}
+                  {artisanOrderFilter === 'sudah_dikonfirmasi' && <Package className="w-6 h-6 text-[#8C533C]" />}
+                  {artisanOrderFilter === 'dikonfirmasi_belum_selesai' && <Truck className="w-6 h-6 text-blue-600" />}
+                  {artisanOrderFilter === 'selesai' && <CheckCircle2 className="w-6 h-6 text-emerald-600" />}
+                  {artisanOrderFilter === 'dibatalkan' && <XCircle className="w-6 h-6 text-red-600" />}
+                  {artisanOrderFilter === 'all' && <Package className="w-6 h-6 text-[#8C533C]" />}
                 </div>
                 <h4 className="font-serif text-base font-bold text-[#2C221E]">
-                  Belum Ada Pesanan Masuk
+                  {artisanOrderFilter === 'pesanan_baru' && 'Tidak Ada Pesanan Baru'}
+                  {artisanOrderFilter === 'sudah_dikonfirmasi' && 'Tidak Ada Pesanan yang Sedang Diproses'}
+                  {artisanOrderFilter === 'dikonfirmasi_belum_selesai' && 'Tidak Ada Pesanan dalam Pengiriman'}
+                  {artisanOrderFilter === 'selesai' && 'Belum Ada Pesanan yang Selesai'}
+                  {artisanOrderFilter === 'dibatalkan' && 'Tidak Ada Pesanan yang Dibatalkan'}
+                  {artisanOrderFilter === 'all' && 'Belum Ada Riwayat Pesanan'}
                 </h4>
                 <p className="text-xs text-[#7A7067] max-w-md mx-auto">
-                  Saat pembeli menyelesaikan pembayaran untuk produk kriya Anda, pesanan akan langsung muncul di sini untuk dikonfirmasi.
+                  {artisanOrderFilter === 'pesanan_baru' &&
+                    'Pesanan baru yang menunggu konfirmasi kesiapan kriya Anda akan muncul di tab ini.'}
+                  {artisanOrderFilter === 'sudah_dikonfirmasi' &&
+                    'Pesanan yang telah Anda konfirmasi dan sedang dalam proses penyiapan kriya / batas 1x24 jam akan muncul di tab ini.'}
+                  {artisanOrderFilter === 'dikonfirmasi_belum_selesai' &&
+                    'Pesanan yang telah Anda serahkan ke ekspedisi kurir & diinput resinya akan muncul di sini hingga kriya diterima pembeli.'}
+                  {artisanOrderFilter === 'selesai' &&
+                    'Pesanan kriya yang telah berhasil diterima oleh pelanggan dan dananya siap/telah dicairkan ke rekening Anda.'}
+                  {artisanOrderFilter === 'dibatalkan' && 'Tidak ada transaksi atau pesanan kriya yang dibatalkan.'}
+                  {artisanOrderFilter === 'all' &&
+                    'Saat pembeli menyelesaikan pembayaran untuk produk kriya Anda, pesanan akan langsung muncul di sini untuk dikonfirmasi.'}
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
-                {orders.map((ord) => (
+                {filteredArtisanOrders.map((ord) => (
                   <div
                     key={ord.orderId}
                     className="bg-white rounded-2xl border border-[#E8DFD5] p-5 sm:p-6 shadow-xs hover:border-[#D5C6B7] transition-all space-y-4"

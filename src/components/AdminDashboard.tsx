@@ -230,23 +230,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   ).length;
 
   const unreadChats = chatMessages.filter((m) => m.sender === 'customer' && !m.read).length;
-  const awaitingConfirmationCount = orders.filter((o) => o.orderStatus === 'menunggu_konfirmasi').length;
+  const pesananBaruCount = orders.filter(
+    (o) =>
+      (o.orderStatus === 'menunggu_konfirmasi' || o.orderStatus === 'menunggu_pembayaran') &&
+      o.paymentStatus !== 'batal'
+  ).length;
 
-  // Filtered orders list
+  const sudahDikonfirmasiCount = orders.filter((o) => o.orderStatus === 'diproses').length;
+
+  const dikonfirmasiBelumSelesaiCount = orders.filter((o) => o.orderStatus === 'dikirim').length;
+
+  const pesananSelesaiCount = orders.filter((o) => o.orderStatus === 'selesai').length;
+
+  const pesananDibatalkanCount = orders.filter(
+    (o) => o.orderStatus === 'dibatalkan' || o.paymentStatus === 'batal'
+  ).length;
+
+  // Filtered orders list based on requested 5 Tabs:
+  // 1. Pesanan baru
+  // 2. Pesanan yang sudah dikonfirmasi
+  // 3. Pesanan yang sudah dikonfirmasi tapi belum selesai
+  // 4. Pesanan yang sudah selesai
+  // 5. Pesanan yang dibatalkan
   const filteredOrders = orders.filter((o) => {
     const matchesFilter =
       orderFilter === 'all' ||
-      (orderFilter === 'pending_payment' && o.paymentStatus === 'menunggu_pembayaran') ||
-      (orderFilter === 'awaiting_confirmation' && o.orderStatus === 'menunggu_konfirmasi') ||
-      (orderFilter === 'processing' && o.orderStatus === 'diproses') ||
-      (orderFilter === 'shipped' && o.orderStatus === 'dikirim') ||
-      (orderFilter === 'completed' && o.orderStatus === 'selesai');
+      (orderFilter === 'pesanan_baru' &&
+        (o.orderStatus === 'menunggu_konfirmasi' || o.orderStatus === 'menunggu_pembayaran') &&
+        o.paymentStatus !== 'batal') ||
+      (orderFilter === 'sudah_dikonfirmasi' && o.orderStatus === 'diproses') ||
+      (orderFilter === 'dikonfirmasi_belum_selesai' && o.orderStatus === 'dikirim') ||
+      (orderFilter === 'selesai' && o.orderStatus === 'selesai') ||
+      (orderFilter === 'dibatalkan' && (o.orderStatus === 'dibatalkan' || o.paymentStatus === 'batal'));
 
     const matchesSearch =
       searchOrder.trim() === '' ||
       o.orderId.toLowerCase().includes(searchOrder.toLowerCase()) ||
       o.customerName.toLowerCase().includes(searchOrder.toLowerCase()) ||
-      o.city.toLowerCase().includes(searchOrder.toLowerCase());
+      o.city.toLowerCase().includes(searchOrder.toLowerCase()) ||
+      (o.shippingTrackingNumber && o.shippingTrackingNumber.toLowerCase().includes(searchOrder.toLowerCase())) ||
+      o.items.some((it) => it.product.name.toLowerCase().includes(searchOrder.toLowerCase()));
 
     return matchesFilter && matchesSearch;
   });
@@ -551,65 +574,146 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* Filter & Search Bar */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-[#E8DFD5]">
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none text-xs">
+                {/* Tab: Semua */}
                 <button
+                  type="button"
                   onClick={() => setOrderFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap ${
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                     orderFilter === 'all'
-                      ? 'bg-[#2C221E] text-white'
+                      ? 'bg-[#2C221E] text-white shadow-xs font-bold'
                       : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
                   }`}
                 >
-                  Semua ({orders.length})
+                  <span>Semua</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums ${
+                      orderFilter === 'all' ? 'bg-white/20 text-white font-bold' : 'bg-[#E8DFD5] text-[#554C45]'
+                    }`}
+                  >
+                    {orders.length}
+                  </span>
                 </button>
+
+                {/* Tab 1: Pesanan Baru */}
                 <button
-                  onClick={() => setOrderFilter('pending_payment')}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap ${
-                    orderFilter === 'pending_payment'
-                      ? 'bg-amber-600 text-white'
+                  type="button"
+                  onClick={() => setOrderFilter('pesanan_baru')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                    orderFilter === 'pesanan_baru'
+                      ? 'bg-amber-700 text-white shadow-xs font-bold ring-1 ring-amber-800'
                       : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
                   }`}
+                  title="Pesanan baru masuk yang menunggu konfirmasi pengrajin / verifikasi pembayaran"
                 >
-                  Perlu Bayar ({pendingPayments})
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Pesanan Baru</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums font-bold ${
+                      orderFilter === 'pesanan_baru'
+                        ? 'bg-white text-amber-900'
+                        : pesananBaruCount > 0
+                        ? 'bg-amber-200 text-amber-900'
+                        : 'bg-[#E8DFD5] text-[#554C45]'
+                    }`}
+                  >
+                    {pesananBaruCount}
+                  </span>
                 </button>
+
+                {/* Tab 2: Pesanan yang Sudah Dikonfirmasi */}
                 <button
-                  onClick={() => setOrderFilter('awaiting_confirmation')}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap ${
-                    orderFilter === 'awaiting_confirmation'
-                      ? 'bg-amber-700 text-white shadow-xs'
+                  type="button"
+                  onClick={() => setOrderFilter('sudah_dikonfirmasi')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                    orderFilter === 'sudah_dikonfirmasi'
+                      ? 'bg-[#8C533C] text-white shadow-xs font-bold ring-1 ring-[#73432F]'
                       : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
                   }`}
+                  title="Pesanan yang sudah dikonfirmasi pengrajin & sedang diproses dalam batas 1x24 jam"
                 >
-                  Perlu Konfirmasi ({awaitingConfirmationCount})
+                  <Package className="w-3.5 h-3.5" />
+                  <span>Sudah Dikonfirmasi</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums font-bold ${
+                      orderFilter === 'sudah_dikonfirmasi'
+                        ? 'bg-white text-[#8C533C]'
+                        : 'bg-[#E8DFD5] text-[#554C45]'
+                    }`}
+                  >
+                    {sudahDikonfirmasiCount}
+                  </span>
                 </button>
+
+                {/* Tab 3: Pesanan yang Sudah Dikonfirmasi tapi Belum Selesai */}
                 <button
-                  onClick={() => setOrderFilter('processing')}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap ${
-                    orderFilter === 'processing'
-                      ? 'bg-[#8C533C] text-white'
+                  type="button"
+                  onClick={() => setOrderFilter('dikonfirmasi_belum_selesai')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                    orderFilter === 'dikonfirmasi_belum_selesai'
+                      ? 'bg-blue-600 text-white shadow-xs font-bold ring-1 ring-blue-700'
                       : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
                   }`}
+                  title="Pesanan yang sudah dikonfirmasi & dikirim kurir, belum selesai karena menunggu konfirmasi penerimaan oleh pembeli"
                 >
-                  Diproses Studio
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>Dikonfirmasi Belum Selesai</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums font-bold ${
+                      orderFilter === 'dikonfirmasi_belum_selesai'
+                        ? 'bg-white text-blue-900'
+                        : 'bg-blue-100 text-blue-800'
+                    }`}
+                  >
+                    {dikonfirmasiBelumSelesaiCount}
+                  </span>
                 </button>
+
+                {/* Tab 4: Pesanan yang Sudah Selesai */}
                 <button
-                  onClick={() => setOrderFilter('shipped')}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap ${
-                    orderFilter === 'shipped'
-                      ? 'bg-blue-600 text-white'
+                  type="button"
+                  onClick={() => setOrderFilter('selesai')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                    orderFilter === 'selesai'
+                      ? 'bg-emerald-700 text-white shadow-xs font-bold ring-1 ring-emerald-800'
                       : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
                   }`}
+                  title="Pesanan yang sudah selesai dan kriya telah diterima pembeli"
                 >
-                  Sedang Dikirim
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Pesanan Selesai</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums font-bold ${
+                      orderFilter === 'selesai'
+                        ? 'bg-white text-emerald-900'
+                        : 'bg-emerald-100 text-emerald-800'
+                    }`}
+                  >
+                    {pesananSelesaiCount}
+                  </span>
                 </button>
+
+                {/* Tab 5: Pesanan yang Dibatalkan */}
                 <button
-                  onClick={() => setOrderFilter('completed')}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap ${
-                    orderFilter === 'completed'
-                      ? 'bg-emerald-700 text-white'
+                  type="button"
+                  onClick={() => setOrderFilter('dibatalkan')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                    orderFilter === 'dibatalkan'
+                      ? 'bg-red-600 text-white shadow-xs font-bold ring-1 ring-red-700'
                       : 'bg-[#FAF7F2] text-[#61574F] hover:bg-[#F2EAE1]'
                   }`}
+                  title="Pesanan yang dibatalkan"
                 >
-                  Selesai
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>Dibatalkan</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums font-bold ${
+                      orderFilter === 'dibatalkan'
+                        ? 'bg-white text-red-900'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {pesananDibatalkanCount}
+                  </span>
                 </button>
               </div>
 
