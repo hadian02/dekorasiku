@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Customer, OrderDetails } from '../types';
+import { Customer, OrderDetails, Product } from '../types';
 import { formatIDR } from '../data/products';
 import {
   X,
@@ -18,9 +18,13 @@ import {
   Copy,
   CreditCard,
   XCircle,
-  Ban
+  Ban,
+  Store,
+  Sparkles
 } from 'lucide-react';
 import { PaymentInstructionModal } from './PaymentInstructionModal';
+
+export type CustomerOrderTab = 'belum_selesai' | 'selesai' | 'dibatalkan';
 
 interface CustomerOrdersModalProps {
   isOpen: boolean;
@@ -32,6 +36,7 @@ interface CustomerOrdersModalProps {
   onConfirmReceipt?: (orderId: string) => void;
   onVerifyPayment?: (orderId: string, mode: 'otomatis' | 'manual') => void;
   onCancelOrder?: (orderId: string) => void;
+  onSelectProduct?: (product: Product) => void;
 }
 
 export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
@@ -44,7 +49,9 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
   onConfirmReceipt,
   onVerifyPayment,
   onCancelOrder,
+  onSelectProduct,
 }) => {
+  const [activeTab, setActiveTab] = useState<CustomerOrderTab>('belum_selesai');
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
   const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
 
@@ -59,13 +66,33 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
       )
     : orders; // fallback to all recent orders if viewing as guest
 
-  const handleCopy = (orderId: string) => {
-    navigator.clipboard.writeText(`Nomor Pesanan dekorasiku: #${orderId}`);
-    setCopiedOrderId(orderId);
+  // Categorize orders into the 3 requested tabs
+  const uncompletedOrders = customerOrders.filter(
+    (o) => o.orderStatus !== 'selesai' && o.orderStatus !== 'dibatalkan' && o.paymentStatus !== 'batal'
+  );
+
+  const completedOrders = customerOrders.filter(
+    (o) => o.orderStatus === 'selesai'
+  );
+
+  const cancelledOrders = customerOrders.filter(
+    (o) => o.orderStatus === 'dibatalkan' || o.paymentStatus === 'batal'
+  );
+
+  const displayedOrders =
+    activeTab === 'belum_selesai'
+      ? uncompletedOrders
+      : activeTab === 'selesai'
+      ? completedOrders
+      : cancelledOrders;
+
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedOrderId(id);
     setTimeout(() => setCopiedOrderId(null), 2000);
   };
 
-  const getStepNumber = (status: OrderDetails['orderStatus'], payStatus: OrderDetails['paymentStatus']) => {
+  const getStepNumber = (status: OrderDetails['orderStatus']) => {
     if (status === 'menunggu_pembayaran') return 1;
     if (status === 'menunggu_konfirmasi') return 1;
     if (status === 'diproses') return 2;
@@ -112,46 +139,139 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#7A7067] hover:text-[#2C221E] hover:bg-[#F2EAE1] transition-colors"
+            className="p-1.5 rounded-lg text-[#7A7067] hover:text-[#2C221E] hover:bg-[#F2EAE1] transition-colors cursor-pointer"
             aria-label="Tutup pesanan saya"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* 3 Tabs Header: Belum Selesai, Selesai, Dibatalkan */}
+        <div className="bg-[#FAF7F2] border-b border-[#E8DFD5] px-4 sm:px-6 pt-2.5 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
+          {/* Tab 1: Belum Selesai */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('belum_selesai')}
+            className={`px-3.5 py-2.5 text-xs font-semibold rounded-t-xl transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer border-b-2 -mb-px ${
+              activeTab === 'belum_selesai'
+                ? 'border-[#8C533C] text-[#8C533C] bg-white shadow-2xs font-bold'
+                : 'border-transparent text-[#7A7067] hover:text-[#2C221E] hover:bg-white/40'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Belum Selesai</span>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold ${
+                activeTab === 'belum_selesai'
+                  ? 'bg-[#8C533C] text-white'
+                  : 'bg-[#E8DFD5] text-[#554C45]'
+              }`}
+            >
+              {uncompletedOrders.length}
+            </span>
+          </button>
+
+          {/* Tab 2: Selesai */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('selesai')}
+            className={`px-3.5 py-2.5 text-xs font-semibold rounded-t-xl transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer border-b-2 -mb-px ${
+              activeTab === 'selesai'
+                ? 'border-[#8C533C] text-[#8C533C] bg-white shadow-2xs font-bold'
+                : 'border-transparent text-[#7A7067] hover:text-[#2C221E] hover:bg-white/40'
+            }`}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Selesai</span>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold ${
+                activeTab === 'selesai'
+                  ? 'bg-emerald-700 text-white'
+                  : 'bg-[#E8DFD5] text-[#554C45]'
+              }`}
+            >
+              {completedOrders.length}
+            </span>
+          </button>
+
+          {/* Tab 3: Dibatalkan */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('dibatalkan')}
+            className={`px-3.5 py-2.5 text-xs font-semibold rounded-t-xl transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer border-b-2 -mb-px ${
+              activeTab === 'dibatalkan'
+                ? 'border-[#8C533C] text-[#8C533C] bg-white shadow-2xs font-bold'
+                : 'border-transparent text-[#7A7067] hover:text-[#2C221E] hover:bg-white/40'
+            }`}
+          >
+            <Ban className="w-3.5 h-3.5" />
+            <span>Dibatalkan</span>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold ${
+                activeTab === 'dibatalkan'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-[#E8DFD5] text-[#554C45]'
+              }`}
+            >
+              {cancelledOrders.length}
+            </span>
+          </button>
+        </div>
+
         {/* Modal Scrollable Body */}
-        <div className="p-6 overflow-y-auto space-y-5">
-          {customerOrders.length === 0 ? (
-            /* Empty Orders State */
-            <div className="text-center py-16 bg-white rounded-xl border border-dashed border-[#E8DFD5] p-8 space-y-3">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
+          {displayedOrders.length === 0 ? (
+            /* Contextual Empty State for current active tab */
+            <div className="text-center py-14 bg-white rounded-2xl border border-dashed border-[#E8DFD5] p-8 space-y-3">
               <div className="w-16 h-16 mx-auto rounded-full bg-[#F2EAE1] text-[#8C533C] flex items-center justify-center">
-                <ShoppingBag className="w-8 h-8 opacity-70" />
+                {activeTab === 'belum_selesai' && <Clock className="w-8 h-8 opacity-75" />}
+                {activeTab === 'selesai' && <CheckCircle2 className="w-8 h-8 text-emerald-600 opacity-75" />}
+                {activeTab === 'dibatalkan' && <ShieldCheck className="w-8 h-8 text-[#8C533C] opacity-75" />}
               </div>
               <h4 className="font-serif text-base font-bold text-[#2C221E]">
-                Belum Ada Riwayat Pesanan
+                {activeTab === 'belum_selesai' && 'Tidak Ada Pesanan yang Sedang Berjalan'}
+                {activeTab === 'selesai' && 'Belum Ada Pesanan yang Selesai'}
+                {activeTab === 'dibatalkan' && 'Tidak Ada Pesanan Dibatalkan'}
               </h4>
               <p className="text-xs text-[#7A7067] max-w-sm mx-auto leading-relaxed">
-                Anda belum melakukan pemesanan kriya. Mulai jelajahi karya keramik bintik, baki jati, dan anyaman alami kami.
+                {activeTab === 'belum_selesai' &&
+                  'Semua pesanan Anda telah terselesaikan atau dibatalkan. Temukan karya kriya etnik terbaru untuk sudut hunian Anda.'}
+                {activeTab === 'selesai' &&
+                  'Pesanan yang telah Anda terima dan konfirmasi akan tersimpan rapi pada tab ini sebagai riwayat transaksi kriya.'}
+                {activeTab === 'dibatalkan' &&
+                  'Bagus! Tidak ada transaksi atau pesanan kriya Anda yang mengalami pembatalan.'}
               </p>
-              <button
-                onClick={() => {
-                  onClose();
-                  onExploreProducts();
-                }}
-                className="mt-2 px-5 py-2.5 bg-[#8C533C] hover:bg-[#73432F] text-white text-xs font-semibold rounded-lg shadow-xs transition-colors inline-flex items-center gap-1.5"
-              >
-                <span>Mulai Belanja Kriya</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              {activeTab === 'belum_selesai' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onExploreProducts();
+                  }}
+                  className="mt-2 px-5 py-2.5 bg-[#8C533C] hover:bg-[#73432F] text-white text-xs font-semibold rounded-lg shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Mulai Belanja Kriya</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {activeTab === 'selesai' && uncompletedOrders.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('belum_selesai')}
+                  className="mt-2 px-4 py-2 bg-[#F2EAE1] hover:bg-[#E8DFD5] text-[#8C533C] text-xs font-semibold rounded-lg transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Lihat Pesanan yang Sedang Berjalan ({uncompletedOrders.length})</span>
+                </button>
+              )}
             </div>
           ) : (
-            customerOrders.map((order) => {
-              const currentStep = getStepNumber(order.orderStatus, order.paymentStatus);
+            displayedOrders.map((order) => {
+              const currentStep = getStepNumber(order.orderStatus);
 
               return (
                 <div
                   key={order.orderId}
-                  className="bg-white rounded-xl border border-[#E8DFD5] p-5 shadow-xs hover:border-[#D5C6B7] transition-all space-y-4"
+                  className="bg-white rounded-2xl border border-[#E8DFD5] p-4 sm:p-5 shadow-xs hover:border-[#D5C6B7] transition-all space-y-4"
                 >
                   {/* Order Top Bar */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#F2ECE3] pb-3">
@@ -160,8 +280,8 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
                         #{order.orderId}
                       </span>
                       <button
-                        onClick={() => handleCopy(order.orderId)}
-                        className="p-1 text-[#A89F95] hover:text-[#2C221E] transition-colors"
+                        onClick={() => handleCopy(`Nomor Pesanan dekorasiku: #${order.orderId}`, order.orderId)}
+                        className="p-1 text-[#A89F95] hover:text-[#2C221E] transition-colors cursor-pointer"
                         title="Salin ID Pesanan"
                       >
                         {copiedOrderId === order.orderId ? (
@@ -180,6 +300,11 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
                         <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1 bg-red-50 text-red-700 border border-red-200">
                           <XCircle className="w-3.5 h-3.5 text-red-600" />
                           <span>Pesanan Dibatalkan</span>
+                        </span>
+                      ) : order.orderStatus === 'selesai' ? (
+                        <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Pesanan Selesai</span>
                         </span>
                       ) : order.paymentStatus === 'menunggu_pembayaran' ? (
                         <button
@@ -204,6 +329,11 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
                           <Package className="w-3.5 h-3.5 text-[#8C533C]" />
                           <span>Diproses Pengrajin (1x24 Jam)</span>
                         </span>
+                      ) : order.orderStatus === 'dikirim' ? (
+                        <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1.5 bg-blue-50 text-blue-800 border border-blue-200">
+                          <Truck className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Dalam Pengiriman</span>
+                        </span>
                       ) : (
                         <span
                           className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1 ${
@@ -212,13 +342,12 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
                               : 'bg-blue-50 text-blue-700 border border-blue-200'
                           }`}
                         >
-                          {order.paymentStatus === 'terverifikasi_otomatis' && (
+                          {order.paymentStatus === 'terverifikasi_otomatis' ? (
                             <>
                               <Zap className="w-3 h-3" />
                               <span>QRIS Lunas Otomatis</span>
                             </>
-                          )}
-                          {order.paymentStatus === 'terverifikasi_manual' && (
+                          ) : (
                             <>
                               <CheckCircle2 className="w-3 h-3" />
                               <span>Lunas Terverifikasi</span>
@@ -279,200 +408,327 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
                           </div>
                         </div>
 
-                      {/* Step 2 */}
-                      <div className="space-y-1.5 flex flex-col items-center">
-                        <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                            currentStep >= 2
-                              ? 'bg-[#8C533C] text-white'
-                              : 'bg-[#F2EAE1] text-[#7A7067]'
-                          }`}
-                        >
-                          2
-                        </div>
-                        <div className="text-[11px] font-semibold text-[#2C221E]">
-                          Diproses Pengrajin
-                        </div>
-                        <div className="text-[10px] text-[#7A7067] hidden sm:block">
-                          {order.orderStatus === 'menunggu_konfirmasi'
-                            ? 'Menunggu Pengrajin'
-                            : order.orderStatus === 'diproses'
-                            ? 'Batas Kirim 1x24 Jam'
-                            : currentStep > 2
-                            ? 'Kriya Siap Dikirim'
-                            : 'Quality Check Kriya'}
-                        </div>
-                      </div>
-
-                      {/* Step 3 */}
-                      <div className="space-y-1.5 flex flex-col items-center">
-                        <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                            currentStep >= 3
-                              ? 'bg-[#8C533C] text-white'
-                              : 'bg-[#F2EAE1] text-[#7A7067]'
-                          }`}
-                        >
-                          3
-                        </div>
-                        <div className="text-[11px] font-semibold text-[#2C221E]">
-                          Dalam Pengiriman
-                        </div>
-                        <div className="text-[10px] text-[#7A7067] hidden sm:block">
-                          {order.orderStatus === 'dikirim'
-                            ? `${order.shippingCourier || 'Kurir'} On Delivery`
-                            : order.shippingMethod.split(' ')[0]}
-                        </div>
-                      </div>
-
-                      {/* Step 4 */}
-                      <div className="space-y-1.5 flex flex-col items-center">
-                        <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                            currentStep >= 4
-                              ? 'bg-emerald-700 text-white'
-                              : 'bg-[#F2EAE1] text-[#7A7067]'
-                          }`}
-                        >
-                          4
-                        </div>
-                        <div className="text-[11px] font-semibold text-[#2C221E]">
-                          Sampai & Selesai
-                        </div>
-                        <div className="text-[10px] text-[#7A7067] hidden sm:block">
-                          Diterima dengan Hangat
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Contextual Banner for Order Status */}
-                    {order.orderStatus === 'menunggu_konfirmasi' && (
-                      <div className="p-3 bg-amber-50/90 rounded-xl border border-amber-200 text-xs text-[#5C4524] space-y-1">
-                        <div className="font-bold flex items-center justify-between text-amber-900">
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="w-4 h-4 text-amber-700 animate-pulse shrink-0" />
-                            <span>Pembayaran Lunas — Menunggu Pengrajin Konfirmasi Pesanan</span>
+                        {/* Step 2 */}
+                        <div className="space-y-1.5 flex flex-col items-center">
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                              currentStep >= 2
+                                ? 'bg-[#8C533C] text-white'
+                                : 'bg-[#F2EAE1] text-[#7A7067]'
+                            }`}
+                          >
+                            2
                           </div>
-                          <span className="text-[10px] bg-amber-200/90 text-amber-950 font-bold px-2 py-0.5 rounded-full">
-                            Bisa Dibatalkan
-                          </span>
+                          <div className="text-[11px] font-semibold text-[#2C221E]">
+                            Diproses Pengrajin
+                          </div>
+                          <div className="text-[10px] text-[#7A7067] hidden sm:block">
+                            {order.orderStatus === 'menunggu_konfirmasi'
+                              ? 'Menunggu Pengrajin'
+                              : order.orderStatus === 'diproses'
+                              ? 'Batas Kirim 1x24 Jam'
+                              : currentStep > 2
+                              ? 'Kriya Siap Dikirim'
+                              : 'Quality Check Kriya'}
+                          </div>
                         </div>
-                        <p className="text-[11px] text-[#7A6242] leading-relaxed">
-                          Pembayaran sebesar <strong>{formatIDR(order.total)}</strong> telah terverifikasi aman. Studio sedang menunggu konfirmasi kesiapan dari pengrajin kriya. 
-                          <strong> Sebelum pesanan dikonfirmasi & diproses, Anda masih berhak membatalkan pesanan ini</strong> dengan pengembalian dana 100%.
-                        </p>
-                      </div>
-                    )}
 
-                    {order.orderStatus === 'diproses' && (
-                      <div className="p-3 bg-[#FAF5F0] rounded-xl border border-[#E8DFD5] text-xs text-[#574E47] space-y-2">
-                        <div className="font-bold flex items-center justify-between text-[#8C533C]">
-                          <div className="flex items-center gap-1.5">
-                            <Package className="w-4 h-4 text-[#8C533C] shrink-0" />
-                            <span>Pesanan Telah Dikonfirmasi & Sedang Diproses Pengrajin</span>
+                        {/* Step 3 */}
+                        <div className="space-y-1.5 flex flex-col items-center">
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                              currentStep >= 3
+                                ? 'bg-[#8C533C] text-white'
+                                : 'bg-[#F2EAE1] text-[#7A7067]'
+                            }`}
+                          >
+                            3
                           </div>
-                          <span className="text-[10px] bg-[#8C533C]/10 text-[#8C533C] font-mono font-bold px-2.5 py-0.5 rounded-full border border-[#8C533C]/20">
-                            Batas Kirim 1x24 Jam
-                          </span>
+                          <div className="text-[11px] font-semibold text-[#2C221E]">
+                            Dalam Pengiriman
+                          </div>
+                          <div className="text-[10px] text-[#7A7067] hidden sm:block">
+                            {order.orderStatus === 'dikirim'
+                              ? `${order.shippingCourier || 'Kurir'} On Delivery`
+                              : order.shippingMethod.split(' ')[0]}
+                          </div>
                         </div>
-                        <p className="text-[11px] text-[#7A7067] leading-relaxed">
-                          Pengrajin telah mengonfirmasi pesanan Anda pada <strong>{order.confirmedByArtisanAt || 'Hari Ini'}</strong>. Pengrajin memiliki batas waktu maksimal 1x24 jam untuk menyelesaikan pengecekan kriya, packing kayu, dan mengisi nomor resi pengiriman.
-                        </p>
-                        {order.shipmentDeadline && (
-                          <div className="p-2 bg-white rounded-lg border border-[#E8DFD5] flex items-center justify-between text-[11px]">
-                            <span className="text-[#7A7067] flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5 text-[#8C533C]" />
-                              <span>Batas Waktu Pengiriman & Resi:</span>
-                            </span>
-                            <span className="font-semibold text-[#8C533C]">{order.shipmentDeadline}</span>
+
+                        {/* Step 4 */}
+                        <div className="space-y-1.5 flex flex-col items-center">
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                              currentStep >= 4
+                                ? 'bg-emerald-700 text-white'
+                                : 'bg-[#F2EAE1] text-[#7A7067]'
+                            }`}
+                          >
+                            4
                           </div>
-                        )}
-                        <div className="text-[10px] text-[#A89F95] italic">
-                          * Pembatalan pesanan telah ditutup karena kriya sudah mulai disiapkan & dipacking oleh pengrajin.
+                          <div className="text-[11px] font-semibold text-[#2C221E]">
+                            Sampai & Selesai
+                          </div>
+                          <div className="text-[10px] text-[#7A7067] hidden sm:block">
+                            {order.orderStatus === 'selesai'
+                              ? 'Diterima dengan Hangat'
+                              : 'Konfirmasi Diterima'}
+                          </div>
                         </div>
                       </div>
-                    )}
 
-                    {order.orderStatus === 'dikirim' && (
-                      <div className="p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-blue-900 space-y-2">
-                        <div className="flex items-center justify-between font-bold">
-                          <div className="flex items-center gap-1.5">
-                            <Truck className="w-4 h-4 text-blue-700" />
-                            <span>Paket Kriya Telah Dikirim oleh Pengrajin</span>
-                          </div>
-                          <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded">
-                            {order.shippingCourier || order.shippingMethod}
-                          </span>
-                        </div>
-                        {order.shippingTrackingNumber && (
-                          <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-white rounded-lg border border-blue-100">
-                            <div>
-                              <div className="text-[10px] text-[#7A7067] font-bold uppercase tracking-wider">
-                                Nomor Resi Pengiriman:
-                              </div>
-                              <div className="font-mono text-xs font-bold text-[#2C221E]">
-                                {order.shippingTrackingNumber}
-                              </div>
+                      {/* Contextual Banner for Order Status */}
+                      {order.orderStatus === 'menunggu_konfirmasi' && (
+                        <div className="p-3 bg-amber-50/90 rounded-xl border border-amber-200 text-xs text-[#5C4524] space-y-1">
+                          <div className="font-bold flex items-center justify-between text-amber-900">
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="w-4 h-4 text-amber-700 animate-pulse shrink-0" />
+                              <span>Pembayaran Lunas — Menunggu Pengrajin Konfirmasi Pesanan</span>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleCopy(order.shippingTrackingNumber || '')}
-                              className="px-2.5 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-50 rounded border border-blue-200 transition-colors flex items-center gap-1 cursor-pointer"
-                            >
-                              <Copy className="w-3 h-3" />
-                              <span>Salin Resi</span>
-                            </button>
+                            <span className="text-[10px] bg-amber-200/90 text-amber-950 font-bold px-2 py-0.5 rounded-full">
+                              Bisa Dibatalkan
+                            </span>
                           </div>
-                        )}
-                        <div className="text-[11px] text-blue-700">
-                          Diserahkan ke kurir pada {order.shippedAt || 'Hari Ini'}.
+                          <p className="text-[11px] text-[#7A6242] leading-relaxed">
+                            Pembayaran sebesar <strong>{formatIDR(order.total)}</strong> telah terverifikasi aman. Studio sedang menunggu konfirmasi kesiapan dari pengrajin kriya.{' '}
+                            <strong>Sebelum pesanan dikonfirmasi & diproses, Anda masih berhak membatalkan pesanan ini</strong> dengan pengembalian dana 100%.
+                          </p>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
 
-                  {/* Order Details Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 text-xs pt-2 border-t border-[#F2ECE3]">
-                    {/* Items */}
-                    <div className="sm:col-span-6 space-y-1.5">
-                      <span className="font-bold text-[#8C533C] uppercase tracking-wider text-[11px]">
-                        Karya Dipesan:
-                      </span>
-                      {order.items.map((it, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-[#61574F]">
-                          <span className="truncate pr-2">
-                            {it.product.name} × {it.quantity}
-                          </span>
-                          <span className="font-mono tabular-nums text-[#2C221E] shrink-0">
-                            {formatIDR(it.product.price * it.quantity)}
-                          </span>
+                      {order.orderStatus === 'diproses' && (
+                        <div className="p-3 bg-[#FAF5F0] rounded-xl border border-[#E8DFD5] text-xs text-[#574E47] space-y-2">
+                          <div className="font-bold flex items-center justify-between text-[#8C533C]">
+                            <div className="flex items-center gap-1.5">
+                              <Package className="w-4 h-4 text-[#8C533C] shrink-0" />
+                              <span>Pesanan Telah Dikonfirmasi & Sedang Diproses Pengrajin</span>
+                            </div>
+                            <span className="text-[10px] bg-[#8C533C]/10 text-[#8C533C] font-mono font-bold px-2.5 py-0.5 rounded-full border border-[#8C533C]/20">
+                              Batas Kirim 1x24 Jam
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#7A7067] leading-relaxed">
+                            Pengrajin telah mengonfirmasi pesanan Anda pada <strong>{order.confirmedByArtisanAt || 'Hari Ini'}</strong>. Pengrajin memiliki batas waktu maksimal 1x24 jam untuk menyelesaikan pengecekan kriya, packing kayu, dan mengisi nomor resi pengiriman.
+                          </p>
+                          {order.shipmentDeadline && (
+                            <div className="p-2 bg-white rounded-lg border border-[#E8DFD5] flex items-center justify-between text-[11px]">
+                              <span className="text-[#7A7067] flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-[#8C533C]" />
+                                <span>Batas Waktu Pengiriman & Resi:</span>
+                              </span>
+                              <span className="font-semibold text-[#8C533C]">{order.shipmentDeadline}</span>
+                            </div>
+                          )}
+                          <div className="text-[10px] text-[#A89F95] italic">
+                            * Pembatalan pesanan telah ditutup karena kriya sudah mulai disiapkan & dipacking oleh pengrajin.
+                          </div>
                         </div>
-                      ))}
-                      {order.giftWrapping && (
-                        <div className="text-[11px] text-[#8C533C]">
-                          + Termasuk Kemasan Kado & Kartu Ucapan
+                      )}
+
+                      {order.orderStatus === 'dikirim' && (
+                        <div className="p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-blue-900 space-y-2">
+                          <div className="flex items-center justify-between font-bold">
+                            <div className="flex items-center gap-1.5">
+                              <Truck className="w-4 h-4 text-blue-700" />
+                              <span>Paket Kriya Telah Dikirim oleh Pengrajin</span>
+                            </div>
+                            <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded">
+                              {order.shippingCourier || order.shippingMethod}
+                            </span>
+                          </div>
+                          {order.shippingTrackingNumber && (
+                            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-white rounded-lg border border-blue-100">
+                              <div>
+                                <div className="text-[10px] text-[#7A7067] font-bold uppercase tracking-wider">
+                                  Nomor Resi Pengiriman:
+                                </div>
+                                <div className="font-mono text-xs font-bold text-[#2C221E]">
+                                  {order.shippingTrackingNumber}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(order.shippingTrackingNumber || '', `resi-${order.orderId}`)}
+                                className="px-2.5 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-50 rounded border border-blue-200 transition-colors flex items-center gap-1 cursor-pointer"
+                              >
+                                {copiedOrderId === `resi-${order.orderId}` ? (
+                                  <>
+                                    <Check className="w-3 h-3 text-emerald-600" />
+                                    <span>Tersalin!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3" />
+                                    <span>Salin Resi</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
+                          <div className="text-[11px] text-blue-700">
+                            Diserahkan ke kurir pada {order.shippedAt || 'Hari Ini'}.
+                          </div>
                         </div>
                       )}
                     </div>
+                  )}
 
-                    {/* Shipping & Delivery Location */}
-                    <div className="sm:col-span-6 space-y-1 text-[#61574F]">
-                      <span className="font-bold text-[#8C533C] uppercase tracking-wider text-[11px]">
+                  {/* Section: Barang-Barang yang Dipesan beserta Qty, Harga, dan Link-nya */}
+                  <div className="space-y-2.5 pt-2 border-t border-[#F2ECE3]">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[#8C533C] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                        <Package className="w-3.5 h-3.5 text-[#8C533C]" />
+                        <span>Barang yang Dipesan ({order.items.reduce((s, it) => s + it.quantity, 0)} item)</span>
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {order.items.map((it, idx) => (
+                        <div
+                          key={`${order.orderId}-item-${idx}`}
+                          className="p-3 bg-[#FAF7F2]/70 hover:bg-[#FAF7F2] rounded-xl border border-[#E8DFD5] transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        >
+                          {/* Image & Product Info */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img
+                              src={it.product.image}
+                              alt={it.product.name}
+                              className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover border border-[#E8DFD5] bg-white shrink-0 shadow-2xs"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = '/assets/images/ceramic_speckled_cup.png';
+                              }}
+                            />
+                            <div className="min-w-0 flex-1 space-y-0.5">
+                              {onSelectProduct ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onSelectProduct(it.product)}
+                                  className="font-serif font-bold text-xs sm:text-sm text-[#2C221E] hover:text-[#8C533C] transition-colors text-left line-clamp-1 block cursor-pointer group"
+                                  title={`Lihat detail produk ${it.product.name}`}
+                                >
+                                  <span className="group-hover:underline">{it.product.name}</span>
+                                </button>
+                              ) : (
+                                <span className="font-serif font-bold text-xs sm:text-sm text-[#2C221E] line-clamp-1 block">
+                                  {it.product.name}
+                                </span>
+                              )}
+
+                              <div className="text-[11px] text-[#7A7067] flex items-center gap-1.5 truncate">
+                                <Store className="w-3 h-3 text-[#8C533C] shrink-0" />
+                                <span className="truncate">
+                                  {it.product.artisan?.workshopName || it.product.artisan?.name || 'Studio Mitra Pengrajin'}
+                                </span>
+                              </div>
+
+                              {it.selectedColor && (
+                                <div className="text-[10px] text-[#8C533C] font-medium">
+                                  Varian: {it.selectedColor}
+                                </div>
+                              )}
+
+                              {/* Mobile-only compact Qty & unit price */}
+                              <div className="flex items-center gap-2 pt-0.5 sm:hidden">
+                                <span className="text-[10px] font-semibold text-[#2C221E] bg-[#E8DFD5]/70 px-2 py-0.5 rounded">
+                                  Qty: {it.quantity} unit
+                                </span>
+                                <span className="text-[10px] text-[#7A7067]">
+                                  @ {formatIDR(it.product.price)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Qty, Price & Product Link */}
+                          <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-[#E8DFD5]/70">
+                            {/* Desktop Qty and price breakdown */}
+                            <div className="hidden sm:block text-right">
+                              <div className="text-[11px] text-[#7A7067]">
+                                <span className="font-semibold text-[#2C221E] bg-[#E8DFD5]/60 px-1.5 py-0.5 rounded text-[10px] mr-1.5">
+                                  Qty: {it.quantity}
+                                </span>
+                                @ {formatIDR(it.product.price)}
+                              </div>
+                              <div className="font-mono text-xs sm:text-sm font-bold text-[#8C533C] mt-0.5">
+                                {formatIDR(it.product.price * it.quantity)}
+                              </div>
+                            </div>
+
+                            {/* Mobile Price */}
+                            <div className="sm:hidden font-mono text-xs font-bold text-[#8C533C]">
+                              {formatIDR(it.product.price * it.quantity)}
+                            </div>
+
+                            {/* Link / Button to View Product */}
+                            {onSelectProduct && (
+                              <button
+                                type="button"
+                                onClick={() => onSelectProduct(it.product)}
+                                className="px-2.5 py-1 text-[11px] font-semibold text-[#8C533C] hover:text-white bg-white hover:bg-[#8C533C] border border-[#DFCBB7] hover:border-[#8C533C] rounded-lg transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer group/btn"
+                                title={`Buka halaman detail produk ${it.product.name}`}
+                              >
+                                <span>Lihat Produk</span>
+                                <ExternalLink className="w-3 h-3 text-[#8C533C] group-hover/btn:text-white transition-colors" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+
+                      {order.giftWrapping && (
+                        <div className="text-[11px] text-[#8C533C] bg-amber-50/70 border border-amber-200/70 rounded-lg px-3 py-2 flex items-center gap-2">
+                          <Sparkles className="w-3.5 h-3.5 text-[#8C533C] shrink-0" />
+                          <span>Termasuk Kemasan Kado Alami (Kertas Samson & Tali Goni) & Kartu Ucapan Cantik Bertulis Tangan</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Delivery & Cost Summary */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2 border-t border-[#F2ECE3] bg-[#FAF7F2]/60 p-3 rounded-xl border border-[#E8DFD5]">
+                    {/* Alamat Pengiriman */}
+                    <div className="space-y-1 text-[#61574F]">
+                      <span className="font-bold text-[#8C533C] uppercase tracking-wider text-[10px] block">
                         Alamat Pengiriman:
                       </span>
-                      <div className="font-semibold text-[#2C221E]">{order.customerName}</div>
-                      <p className="leading-relaxed">
+                      <div className="font-semibold text-[#2C221E]">
+                        {order.customerName} {order.phone ? `(${order.phone})` : ''}
+                      </div>
+                      <p className="leading-relaxed text-[11px]">
                         {order.address}, {order.city}
                       </p>
                       {order.coordinates && (
-                        <div className="flex items-center gap-1 text-[11px] text-[#3A4D39] font-mono mt-1">
-                          <MapPin className="w-3.5 h-3.5" />
+                        <div className="flex items-center gap-1 text-[10px] text-[#3A4D39] font-mono mt-1">
+                          <MapPin className="w-3 h-3 text-emerald-700 shrink-0" />
                           <span>
-                            Titik Google Map: {order.coordinates.lat.toFixed(4)}, {order.coordinates.lng.toFixed(4)}
+                            Titik Map: {order.coordinates.lat.toFixed(4)}, {order.coordinates.lng.toFixed(4)}
                           </span>
                         </div>
                       )}
+                    </div>
+
+                    {/* Rincian Ekspedisi & Pembayaran */}
+                    <div className="space-y-1 text-[#61574F] sm:border-l sm:border-[#E8DFD5] sm:pl-3">
+                      <span className="font-bold text-[#8C533C] uppercase tracking-wider text-[10px] block">
+                        Ekspedisi & Metode Bayar:
+                      </span>
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-[#7A7067]">Kurir:</span>
+                        <span className="font-medium text-[#2C221E]">{order.shippingCourier || order.shippingMethod}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-[#7A7067]">Ongkos Kirim:</span>
+                        <span className="font-mono text-[#2C221E]">{formatIDR(order.shippingCost)}</span>
+                      </div>
+                      {order.discount > 0 && (
+                        <div className="flex justify-between items-center text-[11px] text-emerald-700">
+                          <span>Diskon Promo:</span>
+                          <span className="font-mono">-{formatIDR(order.discount)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center text-[11px] pt-1 border-t border-[#E8DFD5]">
+                        <span className="font-semibold text-[#2C221E]">Metode Pembayaran:</span>
+                        <span className="text-[#8C533C] font-semibold">{order.paymentMethod}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -485,7 +741,7 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
                           <strong>Kriya Telah Diterima</strong> pada {order.customerConfirmedAt || 'Hari Ini'}. Dana penjualan telah berhasil diteruskan ke rekening pengrajin mitra.
                         </span>
                       </div>
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded shrink-0">
                         Escrow Dicairkan
                       </span>
                     </div>
@@ -504,7 +760,7 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
                       {onConfirmReceipt && (
                         <button
                           onClick={() => onConfirmReceipt(order.orderId)}
-                          className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 shadow-xs whitespace-nowrap self-end sm:self-auto transition-all"
+                          className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 shadow-xs whitespace-nowrap self-end sm:self-auto transition-all cursor-pointer"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           <span>Konfirmasi Kriya Telah Diterima</span>
@@ -554,7 +810,7 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
                         </>
                       )}
 
-                      {/* Case 2: Paid Order Before Processed -> User CAN still cancel ("Sebelum diproses user masih dapat membatalkan pesanan") */}
+                      {/* Case 2: Paid Order Before Processed -> User CAN still cancel with 100% refund */}
                       {order.orderStatus === 'menunggu_konfirmasi' && onCancelOrder && (
                         <button
                           type="button"
@@ -605,10 +861,10 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 bg-white border-t border-[#E8DFD5] flex items-center justify-between text-xs">
+        <div className="p-4 bg-white border-t border-[#E8DFD5] flex items-center justify-between text-xs shrink-0">
           <div className="flex items-center gap-2 text-[#7A7067]">
             <ShieldCheck className="w-4 h-4 text-[#3A4D39]" />
-            <span>Garansi ganti kriya pecah selama dalam perjalanan</span>
+            <span>Garansi ganti kriya pecah selama dalam perjalanan kurir</span>
           </div>
 
           <button

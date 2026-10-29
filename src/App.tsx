@@ -54,7 +54,7 @@ import { Check, Heart } from 'lucide-react';
 
 // One-time cleanup of mock demo data for user testing (reset customers, artisans, orders, chats)
 const FRESH_TEST_KEY = 'kala_kriya_test_reset_v3_clean';
-const ARTISAN_AUTO_LOGIN_FIX_KEY = 'dekorasiku_artisan_clean_v4_fix';
+const ARTISAN_AUTO_LOGIN_FIX_KEY_V6 = 'dekorasiku_artisan_clean_v6_clean';
 if (typeof window !== 'undefined') {
   try {
     if (!localStorage.getItem(FRESH_TEST_KEY)) {
@@ -72,10 +72,12 @@ if (typeof window !== 'undefined') {
       localStorage.removeItem('kala_kriya_published_products');
       localStorage.setItem(FRESH_TEST_KEY, 'true');
     }
-    if (!localStorage.getItem(ARTISAN_AUTO_LOGIN_FIX_KEY)) {
+    if (!localStorage.getItem(ARTISAN_AUTO_LOGIN_FIX_KEY_V6)) {
       localStorage.removeItem('kala_kriya_active_artisan');
       localStorage.removeItem('kala_kriya_active_artisan_v2');
-      localStorage.setItem(ARTISAN_AUTO_LOGIN_FIX_KEY, 'true');
+      sessionStorage.removeItem('kala_kriya_active_artisan');
+      sessionStorage.removeItem('kala_kriya_active_artisan_v2');
+      localStorage.setItem(ARTISAN_AUTO_LOGIN_FIX_KEY_V6, 'true');
     }
   } catch {
     // ignore
@@ -1774,6 +1776,10 @@ export default function App() {
         onConfirmReceipt={handleConfirmOrderReceipt}
         onVerifyPayment={handleVerifyPayment}
         onCancelOrder={handleCancelOrder}
+        onSelectProduct={(p) => {
+          setSelectedProduct(p);
+          setIsOrdersModalOpen(false);
+        }}
       />
 
       {/* Warm Floating Toast Notification */}
