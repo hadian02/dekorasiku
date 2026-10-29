@@ -48,14 +48,21 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
 
   const isQris =
     order.paymentMethod.toLowerCase().includes('qris') ||
-    (order.paymentReference && order.paymentReference.startsWith('QRIS'));
+    (Boolean(order.paymentReference) && order.paymentReference!.startsWith('QRIS'));
 
+  // Strictly mutually exclusive: If customer chose QRIS, never show Bank Transfer options
   const isTransfer =
-    order.paymentMethod.toLowerCase().includes('transfer') ||
-    order.paymentMethod.toLowerCase().includes('bca') ||
-    order.paymentMethod.toLowerCase().includes('virtual');
+    !isQris &&
+    (order.paymentMethod.toLowerCase().includes('transfer') ||
+      order.paymentMethod.toLowerCase().includes('bca') ||
+      order.paymentMethod.toLowerCase().includes('virtual') ||
+      order.paymentMethod.toLowerCase().includes('bank'));
 
-  const isCod = order.paymentMethod.toLowerCase().includes('cod') || order.paymentMethod.toLowerCase().includes('tempat');
+  const isCod =
+    !isQris &&
+    !isTransfer &&
+    (order.paymentMethod.toLowerCase().includes('cod') ||
+      order.paymentMethod.toLowerCase().includes('tempat'));
 
   const vaNumber = order.paymentReference?.replace(/[^0-9]/g, '') || '8291081234567890';
   const qrisRef = order.paymentReference || `QRIS-ID-${order.orderId.replace(/[^0-9]/g, '') || '8829103847'}`;

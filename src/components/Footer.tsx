@@ -79,7 +79,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenArtisanPortal, onOpenAdmin
                     className="text-[#D9C3B0] hover:text-white flex items-center gap-1.5 font-semibold transition-colors cursor-pointer text-xs"
                   >
                     <Hammer className="w-3.5 h-3.5 text-[#8C533C]" />
-                    <span>Portal Pengrajin (Log In & Penawaran)</span>
+                    <span>Portal Pengrajin (Subdomain mitra.* / pengrajin.*)</span>
                   </button>
                 </li>
               )}

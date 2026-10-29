@@ -10,7 +10,6 @@ import {
   Hammer,
   LogOut,
   LogIn,
-  Menu,
   X,
   ChevronDown,
   ChevronRight,
@@ -418,18 +417,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           </button>
 
-          {/* Mobile Menu Toggle Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-1.5 text-[#2C221E] hover:text-[#8C533C] bg-[#F2EAE1] hover:bg-[#E8DFD5] border border-[#DECBB7] rounded-lg transition-colors cursor-pointer"
-            aria-label="Buka Menu"
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-5 h-5 text-[#8C533C]" />
-            ) : (
-              <Menu className="w-5 h-5 text-[#2C221E]" />
-            )}
-          </button>
+
         </div>
       </div>
 

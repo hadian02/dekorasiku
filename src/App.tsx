@@ -54,6 +54,7 @@ import { Check, Heart } from 'lucide-react';
 
 // One-time cleanup of mock demo data for user testing (reset customers, artisans, orders, chats)
 const FRESH_TEST_KEY = 'kala_kriya_test_reset_v3_clean';
+const ARTISAN_AUTO_LOGIN_FIX_KEY = 'dekorasiku_artisan_clean_v4_fix';
 if (typeof window !== 'undefined') {
   try {
     if (!localStorage.getItem(FRESH_TEST_KEY)) {
@@ -71,6 +72,11 @@ if (typeof window !== 'undefined') {
       localStorage.removeItem('kala_kriya_published_products');
       localStorage.setItem(FRESH_TEST_KEY, 'true');
     }
+    if (!localStorage.getItem(ARTISAN_AUTO_LOGIN_FIX_KEY)) {
+      localStorage.removeItem('kala_kriya_active_artisan');
+      localStorage.removeItem('kala_kriya_active_artisan_v2');
+      localStorage.setItem(ARTISAN_AUTO_LOGIN_FIX_KEY, 'true');
+    }
   } catch {
     // ignore
   }
@@ -85,9 +91,22 @@ export default function App() {
     window.location.search.includes('admin=true')
   );
 
+  // Subdomain & Path Detection for Artisan / Mitra:
+  // Detects mitra.dekorasiku.com, pengrajin.dekorasiku.com, mitra.localhost, pengrajin.localhost, /mitra, /pengrajin, or ?mitra=true / ?pengrajin=true
+  const isSubdomainArtisan = typeof window !== 'undefined' && !isSubdomainAdmin && (
+    window.location.hostname.toLowerCase().startsWith('mitra.') ||
+    window.location.hostname.toLowerCase().startsWith('pengrajin.') ||
+    window.location.pathname.toLowerCase().startsWith('/mitra') ||
+    window.location.pathname.toLowerCase().startsWith('/pengrajin') ||
+    window.location.search.includes('mitra=true') ||
+    window.location.search.includes('pengrajin=true')
+  );
+
   // View mode: Storefront vs Admin Dashboard vs Artisan Portal
   const [viewMode, setViewMode] = useState<'store' | 'admin' | 'artisan'>(() => {
-    return isSubdomainAdmin ? 'admin' : 'store';
+    if (isSubdomainAdmin) return 'admin';
+    if (isSubdomainArtisan) return 'artisan';
+    return 'store';
   });
 
   // Admin authentication state (password protected)
@@ -146,13 +165,13 @@ export default function App() {
     }
   });
 
-  // Artisan State with LocalStorage persistence
+  // Artisan State with LocalStorage persistence: defaults to null (no artisan auto-logged in)
   const [artisan, setArtisan] = useState<Artisan | null>(() => {
     try {
-      const saved = localStorage.getItem('kala_kriya_active_artisan');
-      return saved ? JSON.parse(saved) : INITIAL_ARTISAN;
+      const saved = localStorage.getItem('kala_kriya_active_artisan_v2') || localStorage.getItem('kala_kriya_active_artisan');
+      return saved ? JSON.parse(saved) : null;
     } catch {
-      return INITIAL_ARTISAN;
+      return null;
     }
   });
 
@@ -690,6 +709,17 @@ export default function App() {
     }
 
     showToast('Berhasil keluar dari akun. Keranjang dan favorit telah dikosongkan.', 'check');
+  };
+
+  const handleLogoutArtisan = () => {
+    try {
+      localStorage.removeItem('kala_kriya_active_artisan');
+      localStorage.removeItem('kala_kriya_active_artisan_v2');
+    } catch (e) {
+      console.error(e);
+    }
+    setArtisan(null);
+    showToast('Berhasil keluar dari akun pengrajin.', 'check');
   };
 
   // Chat message handlers
@@ -1387,7 +1417,18 @@ export default function App() {
         proposals={proposals}
         proposalChats={proposalChats}
         payouts={payouts}
-        onBackToStore={() => setViewMode('store')}
+        onBackToStore={
+          isSubdomainArtisan
+            ? () => {
+                if (typeof window !== 'undefined' && (window.location.hostname.startsWith('mitra.') || window.location.hostname.startsWith('pengrajin.'))) {
+                  window.location.href = window.location.origin.replace(/\/\/(mitra|pengrajin)\./, '//');
+                } else {
+                  setViewMode('store');
+                }
+              }
+            : () => setViewMode('store')
+        }
+        isSubdomain={isSubdomainArtisan}
         onLoginArtisan={(loggedArtisan) => {
           setArtisan(loggedArtisan);
           if (loggedArtisan.approvalStatus === 'disetujui') {
@@ -1396,10 +1437,7 @@ export default function App() {
             showToast(`Masuk sebagai ${loggedArtisan.name} (Status: Menunggu Verifikasi & Kunjungan Tim Admin).`, 'check');
           }
         }}
-        onLogoutArtisan={() => {
-          setArtisan(null);
-          showToast('Berhasil keluar dari akun pengrajin.', 'check');
-        }}
+        onLogoutArtisan={handleLogoutArtisan}
         onRegisterArtisan={handleRegisterArtisan}
         onCreateProposal={handleCreateProposal}
         orders={orders}
@@ -1565,10 +1603,7 @@ export default function App() {
         }}
         onOpenArtisanPortal={() => setViewMode('artisan')}
         artisan={artisan}
-        onLogoutArtisan={() => {
-          setArtisan(null);
-          showToast('Keluar dari sesi pengrajin. Silakan login atau daftar akun baru.', 'check');
-        }}
+        onLogoutArtisan={handleLogoutArtisan}
         onLogoutCustomer={handleLogout}
         activeSection="koleksi"
       />

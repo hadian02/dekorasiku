@@ -82,6 +82,7 @@ interface ArtisanPortalProps {
   catalogProducts?: Product[];
   onUpdateProductStock?: (productId: string, newStock: number) => void;
   onGoToAdmin?: () => void;
+  isSubdomain?: boolean;
 }
 
 export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
@@ -96,6 +97,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
   onBackToStore,
   onLoginArtisan,
   onLogoutArtisan,
+  isSubdomain = false,
   onRegisterArtisan,
   onConfirmOrderArtisan,
   onShipOrder,
@@ -423,13 +425,26 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
               <ArrowLeft className="w-4 h-4" />
               <span>Kembali ke Toko</span>
             </button>
-            <div className="font-serif font-bold text-lg text-[#2C221E]">
-              Portal Mitra Pengrajin dekorasiku
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <div className="font-serif font-bold text-lg text-[#2C221E]">
+                Portal Mitra Pengrajin dekorasiku
+              </div>
+              {isSubdomain && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300 w-fit">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  subdomain mitra/pengrajin aktif
+                </span>
+              )}
             </div>
           </div>
-          <span className="text-xs text-[#8C533C] font-semibold tracking-wider uppercase hidden sm:inline">
-            Khusus Pengrajin & Studio Mitra
-          </span>
+          <div className="text-right hidden sm:block">
+            <span className="text-xs text-[#8C533C] font-semibold tracking-wider uppercase block">
+              Khusus Pengrajin & Studio Mitra
+            </span>
+            <span className="text-[10px] font-mono text-[#7A7067]">
+              Subdomain: mitra.dekorasiku.* / pengrajin.*
+            </span>
+          </div>
         </header>
 
         {/* Auth Body */}
@@ -1129,6 +1144,11 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
                   <CheckCircle2 className="w-3 h-3 text-white" />
                   <span>Disetujui Admin ({artisan.approvedAt || 'Aktif'})</span>
                 </span>
+                {isSubdomain && (
+                  <span className="text-[10px] bg-[#8C533C] text-white border border-[#D9C3B0]/40 px-2 py-0.5 rounded-full font-mono">
+                    mitra.*
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-[#D9C3B0] hidden sm:block">
                 Pengrajin: {artisan.name} · {artisan.location || 'Nusantara'}

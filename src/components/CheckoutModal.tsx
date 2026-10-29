@@ -39,7 +39,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   });
   const [showMapPicker, setShowMapPicker] = useState<boolean>(false);
   const [shippingMethod, setShippingMethod] = useState<'reguler' | 'kilat' | 'kargo'>('reguler');
-  const [paymentMethod, setPaymentMethod] = useState<'qris' | 'bca' | 'cod'>('qris');
+  const [paymentMethod, setPaymentMethod] = useState<'qris' | 'bca'>('qris');
   const [completedOrder, setCompletedOrder] = useState<OrderDetails | null>(null);
   const [copiedInvoice, setCopiedInvoice] = useState(false);
 
@@ -124,19 +124,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           : 'Kargo Khusus Kriya Berat',
       paymentMethod:
         paymentMethod === 'qris'
-          ? 'QRIS Otomatis (Gopay/OVO/BCA/Dana)'
-          : paymentMethod === 'bca'
-          ? 'Transfer Bank BCA Virtual Account'
-          : 'COD (Bayar Tunai saat Kurir Tiba)',
+          ? 'QRIS Instan (GoPay, OVO, Dana, LinkAja)'
+          : 'Transfer Bank BCA Virtual Account',
       paymentStatus: 'menunggu_pembayaran',
       orderStatus: 'menunggu_pembayaran',
       customerEmail: customer?.email || undefined,
       paymentReference:
         paymentMethod === 'qris'
           ? `QRIS-ID-${Date.now().toString().slice(-8)}`
-          : paymentMethod === 'bca'
-          ? `BCA-VA-82910${randomNum}`
-          : undefined,
+          : `BCA-VA-82910${randomNum}`,
       items: [...items],
       subtotal,
       shippingCost,
@@ -475,21 +471,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <span>3. Metode Pembayaran</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('qris')}
-                    className={`w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer select-none ${
+                    className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between cursor-pointer select-none ${
                       paymentMethod === 'qris'
                         ? 'border-[#8C533C] bg-[#FDF9F6] ring-1.5 ring-[#8C533C] shadow-xs'
                         : 'border-[#E8DFD5] bg-white hover:bg-[#FAF7F2]'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <QrCode className="w-5 h-5 text-[#8C533C] shrink-0" />
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-[#F2EAE1] text-[#8C533C] rounded-lg shrink-0">
+                        <QrCode className="w-5 h-5" />
+                      </div>
                       <div>
-                        <div className="text-xs font-bold text-[#2C221E]">QRIS Instan</div>
-                        <div className="text-[10px] sm:text-[11px] text-[#7A7067]">BCA/GoPay/OVO/Dana</div>
+                        <div className="text-xs font-bold text-[#2C221E]">QRIS Instan Otomatis</div>
+                        <div className="text-[10px] sm:text-[11px] text-[#7A7067]">GoPay / OVO / Dana / LinkAja / m-Banking</div>
                       </div>
                     </div>
                     {paymentMethod === 'qris' && (
@@ -502,43 +500,22 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('bca')}
-                    className={`w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer select-none ${
+                    className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between cursor-pointer select-none ${
                       paymentMethod === 'bca'
                         ? 'border-[#8C533C] bg-[#FDF9F6] ring-1.5 ring-[#8C533C] shadow-xs'
                         : 'border-[#E8DFD5] bg-white hover:bg-[#FAF7F2]'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <CreditCard className="w-5 h-5 text-[#8C533C] shrink-0" />
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-[#F2EAE1] text-[#8C533C] rounded-lg shrink-0">
+                        <CreditCard className="w-5 h-5" />
+                      </div>
                       <div>
-                        <div className="text-xs font-bold text-[#2C221E]">Transfer Virtual</div>
-                        <div className="text-[10px] sm:text-[11px] text-[#7A7067]">BCA / Mandiri / BNI</div>
+                        <div className="text-xs font-bold text-[#2C221E]">Transfer Virtual Account</div>
+                        <div className="text-[10px] sm:text-[11px] text-[#7A7067]">BCA / Mandiri / BNI / BRI</div>
                       </div>
                     </div>
                     {paymentMethod === 'bca' && (
-                      <span className="w-4 h-4 rounded-full bg-[#8C533C] text-white flex items-center justify-center shrink-0">
-                        <Check className="w-2.5 h-2.5" />
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('cod')}
-                    className={`w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer select-none ${
-                      paymentMethod === 'cod'
-                        ? 'border-[#8C533C] bg-[#FDF9F6] ring-1.5 ring-[#8C533C] shadow-xs'
-                        : 'border-[#E8DFD5] bg-white hover:bg-[#FAF7F2]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Banknote className="w-5 h-5 text-[#8C533C] shrink-0" />
-                      <div>
-                        <div className="text-xs font-bold text-[#2C221E]">Bayar di Tempat</div>
-                        <div className="text-[10px] sm:text-[11px] text-[#7A7067]">COD Saat Sampai</div>
-                      </div>
-                    </div>
-                    {paymentMethod === 'cod' && (
                       <span className="w-4 h-4 rounded-full bg-[#8C533C] text-white flex items-center justify-center shrink-0">
                         <Check className="w-2.5 h-2.5" />
                       </span>
