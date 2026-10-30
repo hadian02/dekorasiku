@@ -6,13 +6,18 @@ import {
   collection,
   setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
-  getDocFromServer,
-  getDocs
+  getDocFromServer
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { OrderDetails, Product, Artisan } from '../types';
-import { INITIAL_ORDERS, INITIAL_REGISTERED_ARTISANS } from '../data/initialData';
+import { OrderDetails, Product, Artisan, ArtisanProposal, ArtisanProposalChat } from '../types';
+import {
+  INITIAL_ORDERS,
+  INITIAL_REGISTERED_ARTISANS,
+  INITIAL_PROPOSALS,
+  INITIAL_PROPOSAL_CHATS
+} from '../data/initialData';
 import { PRODUCTS } from '../data/products';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
@@ -169,19 +174,48 @@ export function subscribeLiveProducts(
         liveProducts.push(d.data() as Product);
       });
 
-      // Maintain catalog order based on PRODUCTS sequence
-      liveProducts.sort((a, b) => {
+      // Split into custom published products and default catalog products
+      const defaultProductIds = new Set(PRODUCTS.map((p) => p.id));
+      const customProducts = liveProducts.filter((p) => !defaultProductIds.has(p.id));
+      const standardProducts = liveProducts.filter((p) => defaultProductIds.has(p.id));
+
+      // Newly published custom kriya appear at the very top (sorted newest first)
+      customProducts.sort((a, b) => b.id.localeCompare(a.id));
+
+      // Standard products follow the curated display order in PRODUCTS
+      standardProducts.sort((a, b) => {
         const idxA = PRODUCTS.findIndex((p) => p.id === a.id);
         const idxB = PRODUCTS.findIndex((p) => p.id === b.id);
         return (idxA >= 0 ? idxA : 99) - (idxB >= 0 ? idxB : 99);
       });
 
-      onUpdate(liveProducts);
+      const fullCatalog = [...customProducts, ...standardProducts];
+      onUpdate(fullCatalog);
     },
     (err) => {
       handleFirestoreError(err, OperationType.GET, 'products');
     }
   );
+}
+
+export async function saveLiveProduct(product: Product) {
+  try {
+    const docRef = doc(db, 'products', product.id);
+    await setDoc(docRef, product);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `products/${product.id}`);
+    throw err;
+  }
+}
+
+export async function deleteLiveProduct(productId: string) {
+  try {
+    const docRef = doc(db, 'products', productId);
+    await deleteDoc(docRef);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `products/${productId}`);
+    throw err;
+  }
 }
 
 export async function updateLiveProductStock(productId: string, newStock: number) {
@@ -235,6 +269,93 @@ export async function saveLiveArtisan(artisan: Artisan) {
     await setDoc(docRef, artisan, { merge: true });
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, `artisans/${artisan.id}`);
+    throw err;
+  }
+}
+
+// --- Live Proposals Real-Time Sync ---
+export function subscribeLiveProposals(
+  onUpdate: (proposals: ArtisanProposal[]) => void
+) {
+  const propCol = collection(db, 'proposals');
+
+  return onSnapshot(
+    propCol,
+    async (snapshot) => {
+      if (snapshot.empty) {
+        for (const p of INITIAL_PROPOSALS) {
+          try {
+            await setDoc(doc(db, 'proposals', p.id), p);
+          } catch (err) {
+            handleFirestoreError(err, OperationType.WRITE, `proposals/${p.id}`);
+          }
+        }
+        return;
+      }
+
+      const liveProps: ArtisanProposal[] = [];
+      snapshot.forEach((d) => {
+        liveProps.push(d.data() as ArtisanProposal);
+      });
+
+      liveProps.sort((a, b) => b.id.localeCompare(a.id));
+      onUpdate(liveProps);
+    },
+    (err) => {
+      handleFirestoreError(err, OperationType.GET, 'proposals');
+    }
+  );
+}
+
+export async function saveLiveProposal(proposal: ArtisanProposal) {
+  try {
+    const docRef = doc(db, 'proposals', proposal.id);
+    await setDoc(docRef, proposal, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `proposals/${proposal.id}`);
+    throw err;
+  }
+}
+
+// --- Live Proposal Chats Real-Time Sync ---
+export function subscribeLiveProposalChats(
+  onUpdate: (chats: ArtisanProposalChat[]) => void
+) {
+  const chatCol = collection(db, 'proposalChats');
+
+  return onSnapshot(
+    chatCol,
+    async (snapshot) => {
+      if (snapshot.empty) {
+        for (const c of INITIAL_PROPOSAL_CHATS) {
+          try {
+            await setDoc(doc(db, 'proposalChats', c.id), c);
+          } catch (err) {
+            handleFirestoreError(err, OperationType.WRITE, `proposalChats/${c.id}`);
+          }
+        }
+        return;
+      }
+
+      const liveChats: ArtisanProposalChat[] = [];
+      snapshot.forEach((d) => {
+        liveChats.push(d.data() as ArtisanProposalChat);
+      });
+
+      onUpdate(liveChats);
+    },
+    (err) => {
+      handleFirestoreError(err, OperationType.GET, 'proposalChats');
+    }
+  );
+}
+
+export async function saveLiveProposalChat(chat: ArtisanProposalChat) {
+  try {
+    const docRef = doc(db, 'proposalChats', chat.id);
+    await setDoc(docRef, chat, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `proposalChats/${chat.id}`);
     throw err;
   }
 }

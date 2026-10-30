@@ -142,6 +142,54 @@
         "name",
         "email"
       ]
+    },
+    "Proposal": {
+      "title": "Proposal",
+      "description": "Artisan craft proposal submitted for curator review",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Proposal ID"
+        },
+        "title": {
+          "type": "string",
+          "description": "Craft title"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status: dalam_negosiasi, disetujui, tayang_di_toko, ditolak"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "status"
+      ]
+    },
+    "ProposalChat": {
+      "title": "ProposalChat",
+      "description": "Discussion messages regarding a craft proposal",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Message ID"
+        },
+        "proposalId": {
+          "type": "string",
+          "description": "Associated proposal ID"
+        },
+        "text": {
+          "type": "string",
+          "description": "Chat content"
+        }
+      },
+      "required": [
+        "id",
+        "proposalId",
+        "text"
+      ]
     }
   },
   "firestore": {
@@ -151,11 +199,19 @@
     },
     "/products/{productId}": {
       "schema": "Product",
-      "description": "Handcrafted products with live stock tracking"
+      "description": "Handcrafted products with live stock tracking and custom published kriya"
     },
     "/artisans/{artisanId}": {
       "schema": "Artisan",
       "description": "Verified artisan directory profiles"
+    },
+    "/proposals/{proposalId}": {
+      "schema": "Proposal",
+      "description": "Artisan craft proposals and negotiations"
+    },
+    "/proposalChats/{chatId}": {
+      "schema": "ProposalChat",
+      "description": "Messages between artisans and studio curators"
     }
   }
 }

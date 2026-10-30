@@ -20,7 +20,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Products: live stock synchronized between artisans and buyers
+    // Products: live catalog & stock synchronized between artisans and buyers
     match /products/{productId} {
       allow read: if true;
       allow write: if true;
@@ -28,6 +28,18 @@ service cloud.firestore {
 
     // Artisans: directory of partner artisans
     match /artisans/{artisanId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Proposals: artisan craft proposals
+    match /proposals/{proposalId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Proposal Chats: negotiation chat threads between curators and artisans
+    match /proposalChats/{chatId} {
       allow read: if true;
       allow write: if true;
     }

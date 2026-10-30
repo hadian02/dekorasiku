@@ -45,9 +45,11 @@ import {
   Layers,
   Search,
   X,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react';
 import { parseProductCode } from '../utils/productCode';
+import { compressImage } from '../utils/imageCompressor';
 
 interface ArtisanPortalProps {
   artisan: Artisan | null;
@@ -163,6 +165,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
   const [propImages, setPropImages] = useState<string[]>([
     '/assets/images/product_ceramic_mug_1792844459730.jpg'
   ]);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   // Active Proposal Chat Thread
   const [selectedProposalId, setSelectedProposalId] = useState<string>('prop-101');
@@ -412,13 +415,14 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
     }
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const remainingSlots = 5 - propImages.length;
     if (remainingSlots <= 0) {
       alert('Maksimal 5 foto karya kriya telah tercapai. Hapus foto terlebih dahulu jika ingin mengganti.');
+      e.target.value = '';
       return;
     }
 
@@ -427,21 +431,23 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
       alert(`Hanya ${remainingSlots} foto pertama yang akan ditambahkan karena batas maksimal 5 foto.`);
     }
 
-    filesToRead.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result && typeof event.target.result === 'string') {
-          const resultUrl = event.target.result;
-          setPropImages((prev) => {
-            if (prev.length >= 5) return prev;
-            return [...prev, resultUrl];
-          });
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    setIsUploadingPhoto(true);
+    try {
+      const compressedUrls = await Promise.all(
+        filesToRead.map((file) => compressImage(file, 900, 900, 0.75))
+      );
 
-    e.target.value = '';
+      setPropImages((prev) => {
+        const combined = [...prev, ...compressedUrls];
+        return combined.slice(0, 5);
+      });
+    } catch (err) {
+      console.error('Error compressing images:', err);
+      alert('Gagal memproses foto. Silakan coba kembali dengan foto lain.');
+    } finally {
+      setIsUploadingPhoto(false);
+      e.target.value = '';
+    }
   };
 
   const handleRemovePhoto = (index: number) => {
@@ -2614,16 +2620,28 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
                         type="file"
                         accept="image/*"
                         multiple
+                        disabled={isUploadingPhoto}
                         onChange={handlePhotoUpload}
                         className="hidden"
                       />
-                      <Upload className="w-5 h-5 text-[#8C533C] group-hover:scale-110 transition-transform mb-1" />
-                      <span className="text-[10px] font-bold text-[#8C533C] leading-tight">
-                        + Unggah Foto
-                      </span>
-                      <span className="text-[9px] text-[#7A7067] mt-0.5">
-                        ({5 - propImages.length} slot lagi)
-                      </span>
+                      {isUploadingPhoto ? (
+                        <>
+                          <Loader2 className="w-5 h-5 text-[#8C533C] animate-spin mb-1" />
+                          <span className="text-[10px] font-bold text-[#8C533C] leading-tight">
+                            Memproses Foto...
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-5 h-5 text-[#8C533C] group-hover:scale-110 transition-transform mb-1" />
+                          <span className="text-[10px] font-bold text-[#8C533C] leading-tight">
+                            + Unggah Foto
+                          </span>
+                          <span className="text-[9px] text-[#7A7067] mt-0.5">
+                            ({5 - propImages.length} slot lagi)
+                          </span>
+                        </>
+                      )}
                     </label>
                   )}
                 </div>

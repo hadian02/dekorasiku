@@ -28,9 +28,14 @@ import {
   createLiveOrder,
   updateLiveOrder,
   subscribeLiveProducts,
+  saveLiveProduct,
   updateLiveProductStock,
   subscribeLiveArtisans,
-  saveLiveArtisan
+  saveLiveArtisan,
+  subscribeLiveProposals,
+  saveLiveProposal,
+  subscribeLiveProposalChats,
+  saveLiveProposalChat
 } from './services/firebase';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
@@ -337,8 +342,24 @@ export default function App() {
       setIsLiveConnected(true);
     });
 
-    // 2. Subscribe to Live Products & Stock
+    // 2. Subscribe to Live Products & Stock (with self-healing fallback for newly published artisan kriya)
     const unsubProducts = subscribeLiveProducts((liveProducts) => {
+      try {
+        const saved = localStorage.getItem('kala_kriya_published_products');
+        if (saved) {
+          const localCustom: Product[] = JSON.parse(saved);
+          const liveIds = new Set(liveProducts.map((p) => p.id));
+          const missingLocals = localCustom.filter((p) => !liveIds.has(p.id));
+          if (missingLocals.length > 0) {
+            // Include missing locals at the top and write them to Firestore to self-heal
+            setCatalogProducts([...missingLocals, ...liveProducts]);
+            missingLocals.forEach((p) => saveLiveProduct(p).catch(console.error));
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Error reconciling local published products:', err);
+      }
       setCatalogProducts(liveProducts);
     });
 
@@ -347,10 +368,22 @@ export default function App() {
       setRegisteredArtisans(liveArtisans);
     });
 
+    // 4. Subscribe to Live Proposals
+    const unsubProposals = subscribeLiveProposals((liveProps) => {
+      setProposals(liveProps);
+    });
+
+    // 5. Subscribe to Live Proposal Chats
+    const unsubChats = subscribeLiveProposalChats((liveChats) => {
+      setProposalChats(liveChats);
+    });
+
     return () => {
       unsubOrders();
       unsubProducts();
       unsubArtisans();
+      unsubProposals();
+      unsubChats();
     };
   }, []);
 
@@ -1219,6 +1252,7 @@ export default function App() {
     };
 
     setProposals((prev) => [newProposal, ...prev]);
+    saveLiveProposal(newProposal).catch(console.error);
 
     // Add opening welcome chat from curator
     const introMsg: ArtisanProposalChat = {
@@ -1231,21 +1265,32 @@ export default function App() {
     };
 
     setProposalChats((prev) => [...prev, introMsg]);
+    saveLiveProposalChat(introMsg).catch(console.error);
     showToast('Penawaran kriya berhasil diajukan ke kurator studio!', 'check');
   };
 
   const handleApproveProposal = (proposalId: string) => {
+    const updatedApprovedAt = new Date().toISOString().split('T')[0];
     setProposals((prev) =>
       prev.map((p) =>
         p.id === proposalId
           ? {
               ...p,
               status: 'disetujui',
-              approvedAt: new Date().toISOString().split('T')[0],
+              approvedAt: updatedApprovedAt,
             }
           : p
       )
     );
+
+    const target = proposals.find((p) => p.id === proposalId);
+    if (target) {
+      saveLiveProposal({
+        ...target,
+        status: 'disetujui',
+        approvedAt: updatedApprovedAt,
+      }).catch(console.error);
+    }
 
     // Post approval confirmation message in chat
     const approvalChat: ArtisanProposalChat = {
@@ -1258,6 +1303,7 @@ export default function App() {
     };
 
     setProposalChats((prev) => [...prev, approvalChat]);
+    saveLiveProposalChat(approvalChat).catch(console.error);
     showToast('Usulan kriya disetujui! Pengrajin kini dapat menginput rincian kriya.', 'check');
   };
 
@@ -1272,6 +1318,7 @@ export default function App() {
     };
 
     setProposalChats((prev) => [...prev, newChat]);
+    saveLiveProposalChat(newChat).catch(console.error);
     showToast('Pesan terkirim ke pengrajin mitra.', 'check');
   };
 
@@ -1286,6 +1333,7 @@ export default function App() {
     };
 
     setProposalChats((prev) => [...prev, newChat]);
+    saveLiveProposalChat(newChat).catch(console.error);
 
     // Simulated curator response
     setTimeout(() => {
@@ -1308,6 +1356,7 @@ export default function App() {
       };
 
       setProposalChats((prev) => [...prev, curatorChat]);
+      saveLiveProposalChat(curatorChat).catch(console.error);
     }, 1200);
   };
 
@@ -1342,6 +1391,13 @@ export default function App() {
           : p
       )
     );
+
+    saveLiveProposal({
+      ...targetProp,
+      status: 'tayang_di_toko',
+      finalDetails: details,
+      publishedProductId: newProductId,
+    }).catch(console.error);
 
     // Generate 10-digit hexadecimal product code
     const artisanSeq = artisan?.seqNumber || 1;
@@ -1381,13 +1437,20 @@ export default function App() {
       shippingOptions: details.shippingOptions,
     };
 
+    // Save to Firestore Live Collection
+    saveLiveProduct(newProduct).catch((err) =>
+      console.error('Failed to save newly published product to Firestore:', err)
+    );
+
+    // Save to LocalStorage for instant resilience on offline/refresh
     setCatalogProducts((prev) => {
-      const updated = [newProduct, ...prev];
+      const filtered = prev.filter((p) => p.id !== newProductId);
+      const updated = [newProduct, ...filtered];
       try {
         const onlyCustom = updated.filter((p) => p.id.startsWith('kriya-pub-'));
         localStorage.setItem('kala_kriya_published_products', JSON.stringify(onlyCustom));
       } catch (e) {
-        console.error(e);
+        console.error('LocalStorage error saving published products:', e);
       }
       return updated;
     });
