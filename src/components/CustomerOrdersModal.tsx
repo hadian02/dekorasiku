@@ -34,8 +34,8 @@ interface CustomerOrdersModalProps {
   onOpenChatWithOrder: (orderId: string) => void;
   onExploreProducts: () => void;
   onConfirmReceipt?: (orderId: string) => void;
-  onVerifyPayment?: (orderId: string, mode: 'otomatis' | 'manual') => void;
-  onCancelOrder?: (orderId: string) => void;
+  onVerifyPayment?: (orderIdOrIds: string | string[], mode: 'otomatis' | 'manual') => void;
+  onCancelOrder?: (orderIdOrIds: string | string[]) => void;
   onSelectProduct?: (product: Product) => void;
 }
 
@@ -103,6 +103,14 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
 
   const activePayingOrder = payingOrderId
     ? orders.find((o) => o.orderId === payingOrderId) || null
+    : null;
+
+  const activePayingGroup = activePayingOrder?.paymentGroupId
+    ? orders.filter(
+        (o) =>
+          o.paymentGroupId === activePayingOrder.paymentGroupId &&
+          (o.orderStatus === 'menunggu_pembayaran' || o.paymentStatus === 'menunggu_pembayaran')
+      )
     : null;
 
   return (
@@ -279,6 +287,11 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
                       <span className="font-mono text-sm font-bold text-[#8C533C]">
                         #{order.orderId}
                       </span>
+                      {order.packageIndex && order.totalPackages && order.totalPackages > 1 && (
+                        <span className="text-[10px] font-semibold bg-[#8C533C] text-white px-2 py-0.5 rounded-full font-sans">
+                          Paket {order.packageIndex}/{order.totalPackages} · {order.artisanName || 'Mitra Kriya'}
+                        </span>
+                      )}
                       <button
                         onClick={() => handleCopy(`Nomor Pesanan dekorasiku: #${order.orderId}`, order.orderId)}
                         className="p-1 text-[#A89F95] hover:text-[#2C221E] transition-colors cursor-pointer"
@@ -881,11 +894,18 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
         <PaymentInstructionModal
           isOpen={activePayingOrder !== null}
           order={activePayingOrder}
+          ordersGroup={activePayingGroup && activePayingGroup.length > 1 ? activePayingGroup : null}
           onClose={() => setPayingOrderId(null)}
           onVerifyPayment={onVerifyPayment}
-          onCancelOrder={(orderId) => {
+          onCancelOrder={(orderIdOrIds) => {
             setPayingOrderId(null);
-            if (onCancelOrder) onCancelOrder(orderId);
+            if (onCancelOrder) {
+              if (Array.isArray(orderIdOrIds)) {
+                orderIdOrIds.forEach((id) => onCancelOrder(id));
+              } else {
+                onCancelOrder(orderIdOrIds);
+              }
+            }
           }}
           onOpenChatWithOrder={(orderId) => {
             setPayingOrderId(null);

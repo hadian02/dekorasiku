@@ -45,7 +45,8 @@ import {
   CalendarRange,
   BarChart3,
   Layers,
-  ChevronRight
+  ChevronRight,
+  LogOut
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -337,159 +338,165 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#2C221E] flex flex-col">
       {/* Top Admin Bar */}
-      <header className="sticky top-0 z-40 bg-[#2C221E] text-white border-b border-[#43352F] shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onBackToStore}
-              className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-[#D9C3B0] hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Kembali ke Toko</span>
-            </button>
-            {onAdminLogout && (
-              <button
-                type="button"
-                onClick={onAdminLogout}
-                className="px-2.5 py-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-200 border border-red-800/40 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="Kunci sesi administrator"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Kunci / Keluar</span>
-              </button>
-            )}
-            <div className="h-6 w-px bg-white/20 hidden sm:block" />
-            <div>
-              <h1 className="font-serif text-lg font-bold tracking-tight">
-                Panel Admin Studio dekorasiku
-              </h1>
-              <p className="text-[11px] text-[#D9C3B0] hidden sm:block">
+      <header className="sticky top-0 z-40 bg-[#2C221E] text-white border-b border-[#43352F] shadow-md">
+        {/* Row 1: Page Title & Admin Header */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-[#8C533C] text-white flex items-center justify-center font-bold text-sm shadow-inner shrink-0">
+              AD
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="font-serif text-lg sm:text-xl font-bold tracking-tight text-white truncate">
+                  Panel Admin Studio dekorasiku
+                </h1>
+                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800/60 shrink-0">
+                  Sistem Aktif
+                </span>
+              </div>
+              <p className="text-xs text-[#D9C3B0] mt-0.5 truncate">
                 Pesanan Masuk, QRIS, Chat Pelanggan, Kurasi Pengrajin & Escrow
               </p>
             </div>
           </div>
 
-          {/* Tab Navigation Segmented Buttons */}
-          <nav className="flex items-center gap-1 bg-white/10 p-1 rounded-xl overflow-x-auto">
+          <div className="flex items-center gap-3 shrink-0">
             <button
-              onClick={() => setActiveTab('orders')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap ${
-                activeTab === 'orders'
-                  ? 'bg-[#8C533C] text-white shadow-xs'
-                  : 'text-[#D9C3B0] hover:text-white'
-              }`}
+              type="button"
+              onClick={onAdminLogout || onBackToStore}
+              className="px-3.5 py-2 bg-red-900/50 hover:bg-red-800/70 text-red-200 hover:text-white border border-red-700/60 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              title="Keluar / Logout dari Panel Admin"
             >
-              <Package className="w-3.5 h-3.5" />
-              <span>Pesanan</span>
-              <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full tabular-nums">
-                {orders.length}
-              </span>
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
             </button>
+          </div>
+        </div>
 
-            <button
-              onClick={() => setActiveTab('payments')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap ${
-                activeTab === 'payments'
-                  ? 'bg-[#8C533C] text-white shadow-xs'
-                  : 'text-[#D9C3B0] hover:text-white'
-              }`}
-            >
-              <CreditCard className="w-3.5 h-3.5" />
-              <span>QRIS</span>
-              {pendingPayments > 0 && (
-                <span className="text-[10px] bg-amber-500 text-black px-1.5 py-0.2 rounded-full font-bold tabular-nums">
-                  {pendingPayments}
+        {/* Row 2: Full-Width Horizontal Tab Navigation Bar (Under Page Title) */}
+        <div className="border-t border-[#43352F]/80 bg-[#241B18]/95 backdrop-blur-xs">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 overflow-x-auto">
+            <nav className="flex items-center gap-1.5 min-w-max">
+              <button
+                onClick={() => setActiveTab('orders')}
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === 'orders'
+                    ? 'bg-[#8C533C] text-white shadow-xs font-bold'
+                    : 'text-[#D9C3B0] hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Package className="w-4 h-4" />
+                <span>Pesanan Toko</span>
+                <span className="text-[10px] bg-black/40 px-2 py-0.5 rounded-full tabular-nums">
+                  {orders.length}
                 </span>
-              )}
-            </button>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('chats')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap ${
-                activeTab === 'chats'
-                  ? 'bg-[#8C533C] text-white shadow-xs'
-                  : 'text-[#D9C3B0] hover:text-white'
-              }`}
-            >
-              <MessageCircle className="w-3.5 h-3.5" />
-              <span>Chat Pelanggan</span>
-              {unreadChats > 0 && (
-                <span className="text-[10px] bg-rose-500 text-white px-1.5 py-0.2 rounded-full font-bold tabular-nums">
-                  {unreadChats}
-                </span>
-              )}
-            </button>
+              <button
+                onClick={() => setActiveTab('payments')}
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === 'payments'
+                    ? 'bg-[#8C533C] text-white shadow-xs font-bold'
+                    : 'text-[#D9C3B0] hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>Verifikasi QRIS & Pembayaran</span>
+                {pendingPayments > 0 && (
+                  <span className="text-[10px] bg-amber-500 text-black px-2 py-0.5 rounded-full font-bold tabular-nums">
+                    {pendingPayments}
+                  </span>
+                )}
+              </button>
 
-            <button
-              onClick={() => setActiveTab('proposals')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap ${
-                activeTab === 'proposals'
-                  ? 'bg-[#8C533C] text-white shadow-xs'
-                  : 'text-[#D9C3B0] hover:text-white'
-              }`}
-            >
-              <Hammer className="w-3.5 h-3.5" />
-              <span>Penawaran Kriya</span>
-              {pendingProposalsCount > 0 && (
-                <span className="text-[10px] bg-amber-500 text-black px-1.5 py-0.2 rounded-full font-bold tabular-nums">
-                  {pendingProposalsCount}
-                </span>
-              )}
-            </button>
+              <button
+                onClick={() => setActiveTab('chats')}
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === 'chats'
+                    ? 'bg-[#8C533C] text-white shadow-xs font-bold'
+                    : 'text-[#D9C3B0] hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Chat Pelanggan</span>
+                {unreadChats > 0 && (
+                  <span className="text-[10px] bg-rose-500 text-white px-2 py-0.5 rounded-full font-bold tabular-nums">
+                    {unreadChats}
+                  </span>
+                )}
+              </button>
 
-            <button
-              onClick={() => setActiveTab('payouts')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap ${
-                activeTab === 'payouts'
-                  ? 'bg-[#8C533C] text-white shadow-xs'
-                  : 'text-[#D9C3B0] hover:text-white'
-              }`}
-            >
-              <Wallet className="w-3.5 h-3.5" />
-              <span>Escrow Pengrajin</span>
-              {readyPayoutsCount > 0 && (
-                <span className="text-[10px] bg-emerald-500 text-white px-1.5 py-0.2 rounded-full font-bold tabular-nums">
-                  {readyPayoutsCount}
-                </span>
-              )}
-            </button>
+              <button
+                onClick={() => setActiveTab('proposals')}
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === 'proposals'
+                    ? 'bg-[#8C533C] text-white shadow-xs font-bold'
+                    : 'text-[#D9C3B0] hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Hammer className="w-4 h-4" />
+                <span>Penawaran Kriya & Negosiasi</span>
+                {pendingProposalsCount > 0 && (
+                  <span className="text-[10px] bg-amber-500 text-black px-2 py-0.5 rounded-full font-bold tabular-nums">
+                    {pendingProposalsCount}
+                  </span>
+                )}
+              </button>
 
-            <button
-              onClick={() => setActiveTab('artisans')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap ${
-                activeTab === 'artisans'
-                  ? 'bg-[#8C533C] text-white shadow-xs'
-                  : 'text-[#D9C3B0] hover:text-white'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Verifikasi Pengrajin</span>
-              {pendingArtisansCount > 0 ? (
-                <span className="text-[10px] bg-amber-500 text-black px-1.5 py-0.2 rounded-full font-bold tabular-nums">
-                  {pendingArtisansCount} baru
-                </span>
-              ) : (
-                <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full tabular-nums">
-                  {artisans.length}
-                </span>
-              )}
-            </button>
+              <button
+                onClick={() => setActiveTab('payouts')}
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === 'payouts'
+                    ? 'bg-[#8C533C] text-white shadow-xs font-bold'
+                    : 'text-[#D9C3B0] hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Wallet className="w-4 h-4" />
+                <span>Escrow & Rekening Pengrajin</span>
+                {readyPayoutsCount > 0 && (
+                  <span className="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold tabular-nums">
+                    {readyPayoutsCount}
+                  </span>
+                )}
+              </button>
 
-            <button
-              onClick={() => setActiveTab('mitra_products')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
-                activeTab === 'mitra_products'
-                  ? 'bg-[#8C533C] text-white shadow-xs'
-                  : 'text-[#D9C3B0] hover:text-white'
-              }`}
-            >
-              <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Produk & Omset Mitra</span>
-              <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full tabular-nums">
-                {products.length} kriya
-              </span>
-            </button>
-          </nav>
+              <button
+                onClick={() => setActiveTab('artisans')}
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === 'artisans'
+                    ? 'bg-[#8C533C] text-white shadow-xs font-bold'
+                    : 'text-[#D9C3B0] hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                <span>Verifikasi Pengrajin</span>
+                {pendingArtisansCount > 0 ? (
+                  <span className="text-[10px] bg-amber-500 text-black px-2 py-0.5 rounded-full font-bold tabular-nums">
+                    {pendingArtisansCount} baru
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-black/40 px-2 py-0.5 rounded-full tabular-nums">
+                    {artisans.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('mitra_products')}
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === 'mitra_products'
+                    ? 'bg-[#8C533C] text-white shadow-xs font-bold'
+                    : 'text-[#D9C3B0] hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <ShoppingBag className="w-4 h-4" />
+                <span>Produk & Omset Mitra</span>
+                <span className="text-[10px] bg-black/40 px-2 py-0.5 rounded-full tabular-nums">
+                  {products.length} kriya
+                </span>
+              </button>
+            </nav>
+          </div>
         </div>
       </header>
 

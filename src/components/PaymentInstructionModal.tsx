@@ -14,22 +14,27 @@ import {
   ExternalLink,
   MessageCircle,
   HelpCircle,
-  Sparkles
+  Sparkles,
+  Package,
+  Layers,
+  Store
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface PaymentInstructionModalProps {
   isOpen: boolean;
   order: OrderDetails | null;
+  ordersGroup?: OrderDetails[] | null;
   onClose: () => void;
-  onVerifyPayment?: (orderId: string, mode: 'otomatis' | 'manual') => void;
+  onVerifyPayment?: (orderIdOrIds: string | string[], mode: 'otomatis' | 'manual') => void;
   onOpenChatWithOrder?: (orderId: string) => void;
-  onCancelOrder?: (orderId: string) => void;
+  onCancelOrder?: (orderIdOrIds: string | string[]) => void;
 }
 
 export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = ({
   isOpen,
   order,
+  ordersGroup,
   onClose,
   onVerifyPayment,
   onOpenChatWithOrder,
@@ -39,6 +44,11 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
   const [isProcessingSim, setIsProcessingSim] = useState(false);
 
   if (!isOpen || !order) return null;
+
+  // If ordersGroup is provided and has multiple orders, use group total
+  const isMultiPackage = Boolean(ordersGroup && ordersGroup.length > 1);
+  const activeOrders = isMultiPackage && ordersGroup ? ordersGroup : [order];
+  const combinedTotal = activeOrders.reduce((sum, o) => sum + o.total, 0);
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -50,7 +60,6 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
     order.paymentMethod.toLowerCase().includes('qris') ||
     (Boolean(order.paymentReference) && order.paymentReference!.startsWith('QRIS'));
 
-  // Strictly mutually exclusive: If customer chose QRIS, never show Bank Transfer options
   const isTransfer =
     !isQris &&
     (order.paymentMethod.toLowerCase().includes('transfer') ||
@@ -72,12 +81,16 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
     setTimeout(() => {
       setIsProcessingSim(false);
       if (onVerifyPayment) {
-        onVerifyPayment(order.orderId, mode);
+        if (isMultiPackage) {
+          onVerifyPayment(activeOrders.map((o) => o.orderId), mode);
+        } else {
+          onVerifyPayment(order.orderId, mode);
+        }
       }
       try {
         confetti({
-          particleCount: 70,
-          spread: 60,
+          particleCount: 75,
+          spread: 65,
           origin: { y: 0.6 },
           colors: ['#8C533C', '#3A4D39', '#D9C3B0'],
         });
@@ -110,11 +123,24 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
               )}
             </div>
             <div>
-              <h3 className="font-serif text-base sm:text-lg font-bold text-[#2C221E]">
-                Instruksi & Halaman Pembayaran
+              <h3 className="font-serif text-base sm:text-lg font-bold text-[#2C221E] flex items-center gap-2">
+                <span>Instruksi & Halaman Pembayaran</span>
+                {isMultiPackage && (
+                  <span className="text-[10px] bg-[#8C533C] text-white px-2 py-0.5 rounded-full font-sans font-semibold">
+                    Multi-Pengrajin
+                  </span>
+                )}
               </h3>
               <p className="text-xs text-[#7A7067]">
-                Pesanan <span className="font-mono font-semibold text-[#8C533C]">#{order.orderId}</span>
+                {isMultiPackage ? (
+                  <span>
+                    Grup Pembayaran: <strong className="text-[#8C533C]">{order.paymentGroupId || 'PAY-MULTI'}</strong> ({activeOrders.length} Pesanan Berbeda)
+                  </span>
+                ) : (
+                  <span>
+                    Nomor Pesanan: <span className="font-mono font-semibold text-[#8C533C]">#{order.orderId}</span>
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -135,10 +161,10 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
           <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E8DFD5] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <span className="text-[11px] uppercase tracking-wider text-[#7A7067] font-semibold block">
-                Total Tagihan Pembayaran
+                {isMultiPackage ? 'Satu Total Tagihan (Untuk Semua Pesanan)' : 'Total Tagihan Pembayaran'}
               </span>
               <div className="text-2xl font-serif font-bold text-[#8C533C] tabular-nums mt-0.5">
-                {formatIDR(order.total)}
+                {formatIDR(combinedTotal)}
               </div>
               <span className="text-xs text-[#61574F] mt-0.5 block">
                 Metode: <strong>{order.paymentMethod}</strong>
@@ -147,7 +173,7 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
 
             <button
               type="button"
-              onClick={() => handleCopy(order.total.toString(), 'nominal')}
+              onClick={() => handleCopy(combinedTotal.toString(), 'nominal')}
               className="px-3 py-1.5 bg-[#FAF7F2] hover:bg-[#F2EAE1] text-xs font-semibold text-[#2C221E] rounded-lg border border-[#E8DFD5] transition-colors flex items-center justify-center gap-1.5 self-start sm:self-auto cursor-pointer"
             >
               {copiedText === 'nominal' ? (
@@ -164,19 +190,61 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
             </button>
           </div>
 
+          {/* Multi-Order Package Breakdown Card */}
+          {isMultiPackage && (
+            <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#E8DFD5] space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#2C221E] flex items-center gap-1.5">
+                  <Package className="w-4 h-4 text-[#8C533C]" />
+                  <span>Rincian {activeOrders.length} Pesanan Pengrajin Mandiri</span>
+                </span>
+                <span className="text-[11px] text-[#3A4D39] font-medium bg-[#3A4D39]/10 px-2 py-0.5 rounded-full">
+                  Lunas Sekaligus
+                </span>
+              </div>
+              <p className="text-[11px] text-[#7A7067]">
+                Setelah Anda menyelesaikan pembayaran satu kali ini, sistem otomatis memverifikasi dan meneruskan pesanan ke masing-masing pengrajin berikut:
+              </p>
+              <div className="space-y-2 pt-1">
+                {activeOrders.map((ord, idx) => (
+                  <div
+                    key={ord.orderId}
+                    className="bg-white p-3 rounded-xl border border-[#E8DFD5] text-xs flex items-center justify-between shadow-2xs"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-[#8C533C]">#{ord.orderId}</span>
+                        <span className="text-[11px] font-semibold text-[#2C221E]">
+                          {ord.artisanWorkshopName || ord.artisanName || 'Pengrajin Kriya'}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-[#7A7067] mt-0.5">
+                        {ord.items.length} jenis produk · {ord.shippingMethod}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-mono font-bold text-[#2C221E]">{formatIDR(ord.total)}</div>
+                      <div className="text-[10px] text-amber-700 font-medium">Menunggu Pelunasan</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Status Alert */}
           {order.paymentStatus === 'menunggu_pembayaran' ? (
             <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3.5 flex items-start gap-2.5 text-xs">
               <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
               <div className="leading-relaxed">
-                <span className="font-bold">Status: Menunggu Pembayaran.</span> Selesaikan pembayaran sebelum batas waktu agar pesanan kriya segera diproses oleh bengkel pengrajin.
+                <span className="font-bold">Status: Menunggu Pembayaran.</span> Selesaikan pembayaran satu tagihan ini agar {activeOrders.length} paket kriya segera diproses oleh masing-masing bengkel pengrajin.
               </div>
             </div>
           ) : (
             <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl p-3.5 flex items-center gap-2.5 text-xs">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               <div>
-                <span className="font-bold">Pembayaran Telah Lunas Terverifikasi.</span> Karya Anda sedang disiapkan dengan cermat.
+                <span className="font-bold">Pembayaran Telah Lunas Terverifikasi.</span> Semua pesanan pengrajin sedang disiapkan dengan cermat.
               </div>
             </div>
           )}
@@ -186,7 +254,7 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
             <div className="bg-white p-5 rounded-2xl border border-[#E8DFD5] shadow-xs space-y-4">
               <div className="text-center space-y-1">
                 <span className="text-xs font-bold text-[#8C533C] uppercase tracking-wider block">
-                  Scan QRIS Nasional
+                  Scan QRIS Nasional Terpadu
                 </span>
                 <p className="text-xs text-[#7A7067]">
                   Mendukung BCA Mobile, GoPay, OVO, Dana, ShopeePay, LinkAja & Semua m-Banking.
@@ -203,7 +271,6 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
                 {/* Stylized QR Code SVG */}
                 <div className="w-44 h-44 bg-white p-2 border border-gray-100 rounded-xl flex items-center justify-center">
                   <svg className="w-full h-full text-[#2C221E]" viewBox="0 0 100 100" fill="currentColor">
-                    {/* Corner markers */}
                     <rect x="5" y="5" width="26" height="26" rx="4" fill="none" stroke="currentColor" strokeWidth="6" />
                     <rect x="13" y="13" width="10" height="10" />
                     
@@ -213,167 +280,103 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
                     <rect x="5" y="69" width="26" height="26" rx="4" fill="none" stroke="currentColor" strokeWidth="6" />
                     <rect x="13" y="77" width="10" height="10" />
 
-                    {/* QR Matrix Pattern Dots */}
                     <rect x="37" y="8" width="6" height="6" />
                     <rect x="49" y="8" width="6" height="6" />
                     <rect x="43" y="18" width="6" height="6" />
                     <rect x="55" y="18" width="6" height="6" />
-                    
                     <rect x="8" y="37" width="6" height="6" />
-                    <rect x="8" y="49" width="6" height="6" />
-                    <rect x="18" y="43" width="6" height="6" />
-                    <rect x="18" y="55" width="6" height="6" />
-
-                    {/* Center body */}
-                    <rect x="37" y="37" width="8" height="8" />
-                    <rect x="49" y="37" width="8" height="8" />
-                    <rect x="61" y="37" width="8" height="8" />
-                    <rect x="37" y="49" width="8" height="8" />
-                    <rect x="55" y="49" width="10" height="10" fill="#8C533C" />
-                    <rect x="37" y="61" width="8" height="8" />
-                    <rect x="49" y="61" width="8" height="8" />
-                    <rect x="61" y="61" width="8" height="8" />
-
-                    {/* Bottom right dots */}
-                    <rect x="69" y="73" width="6" height="6" />
-                    <rect x="81" y="73" width="6" height="6" />
-                    <rect x="75" y="83" width="6" height="6" />
-                    <rect x="87" y="83" width="6" height="6" />
+                    <rect x="18" y="45" width="6" height="6" />
+                    <rect x="26" y="37" width="6" height="6" />
+                    <rect x="8" y="55" width="6" height="6" />
+                    <rect x="37" y="37" width="26" height="26" rx="3" fill="#8C533C" />
+                    <circle cx="50" cy="50" r="6" fill="white" />
+                    <rect x="69" y="37" width="6" height="6" />
+                    <rect x="81" y="45" width="6" height="6" />
+                    <rect x="69" y="55" width="6" height="6" />
+                    <rect x="85" y="55" width="6" height="6" />
+                    <rect x="37" y="69" width="6" height="6" />
+                    <rect x="49" y="75" width="6" height="6" />
+                    <rect x="43" y="85" width="6" height="6" />
+                    <rect x="55" y="85" width="6" height="6" />
+                    <rect x="69" y="69" width="6" height="6" />
+                    <rect x="81" y="77" width="6" height="6" />
+                    <rect x="73" y="87" width="6" height="6" />
+                    <rect x="85" y="87" width="6" height="6" />
                   </svg>
                 </div>
 
-                <div className="text-[10px] text-gray-500 font-mono mt-2 text-center truncate max-w-full">
-                  NMID: ID1029481920
+                <div className="mt-2 text-center">
+                  <div className="font-mono text-[10px] text-[#7A7067] tracking-wider">{qrisRef}</div>
+                  <div className="text-[10px] text-[#3A4D39] font-bold mt-0.5">NMID: ID1020088921029</div>
                 </div>
               </div>
 
-              {/* Reference ID copy */}
-              <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E8DFD5] flex items-center justify-between text-xs">
-                <div>
-                  <span className="text-[10px] text-[#7A7067] uppercase block font-semibold">
-                    Kode Referensi Transaksi
-                  </span>
-                  <span className="font-mono font-bold text-[#2C221E]">{qrisRef}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(qrisRef, 'qrisRef')}
-                  className="p-1.5 text-[#7A7067] hover:text-[#2C221E] transition-colors"
-                  title="Salin referensi"
-                >
-                  {copiedText === 'qrisRef' ? (
-                    <Check className="w-4 h-4 text-emerald-600" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-
-              {/* Steps */}
-              <div className="space-y-2 text-xs text-[#61574F]">
-                <span className="font-bold text-[#2C221E] block">Cara Bayar via QRIS:</span>
-                <ol className="list-decimal pl-4 space-y-1 leading-relaxed">
-                  <li>Buka aplikasi m-Banking atau e-wallet (BCA Mobile, GoPay, OVO, Dana, dll).</li>
-                  <li>Pilih menu <strong>Scan / Bayar QRIS</strong>.</li>
-                  <li>Arahkan kamera ke QR Code di atas.</li>
-                  <li>Periksa nama penerima <strong>dekorasiku Atelier</strong> dan nominal <strong>{formatIDR(order.total)}</strong>.</li>
-                  <li>Masukkan PIN Anda. Pembayaran akan terkonfirmasi secara instan.</li>
-                </ol>
-              </div>
-
-              {/* Simulation button for test */}
+              {/* Simulation Button for Testing */}
               {order.paymentStatus === 'menunggu_pembayaran' && onVerifyPayment && (
-                <div className="pt-2 border-t border-[#F2ECE3]">
+                <div className="pt-2">
                   <button
                     type="button"
                     disabled={isProcessingSim}
                     onClick={() => handleSimulatePayment('otomatis')}
                     className="w-full py-3 bg-[#3A4D39] hover:bg-[#2C3B2B] text-white font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
                   >
-                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <Sparkles className="w-4 h-4 text-emerald-300" />
                     <span>
-                      {isProcessingSim ? 'Memproses Gateway...' : 'Simulasikan Pembayaran QRIS Sukses (Uji Coba)'}
+                      {isProcessingSim
+                        ? 'Memproses Webhook QRIS...'
+                        : `Simulasi Bayar QRIS Otomatis (${formatIDR(combinedTotal)})`}
                     </span>
                   </button>
                   <p className="text-[10px] text-center text-[#7A7067] mt-1.5">
-                    Klik tombol di atas untuk menguji konfirmasi otomatis tanpa transfer nyata.
+                    Mode Pengujian: Klik untuk mensimulasikan notifikasi sukses pembayaran QRIS secara instan.
                   </p>
                 </div>
               )}
             </div>
           )}
 
-          {/* 2. Bank Transfer / Virtual Account Section */}
+          {/* 2. Virtual Account Section */}
           {isTransfer && (
             <div className="bg-white p-5 rounded-2xl border border-[#E8DFD5] shadow-xs space-y-4">
-              <div className="text-center space-y-1">
-                <span className="text-xs font-bold text-[#8C533C] uppercase tracking-wider block">
-                  Transfer Bank / Virtual Account
+              <div className="flex items-center justify-between border-b border-[#F2ECE3] pb-3">
+                <div className="flex items-center gap-2 font-bold text-xs text-[#2C221E]">
+                  <CreditCard className="w-4 h-4 text-[#8C533C]" />
+                  <span>BCA Virtual Account</span>
+                </div>
+                <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-bold">
+                  Verifikasi Otomatis 24 Jam
                 </span>
-                <p className="text-xs text-[#7A7067]">
-                  Mendukung Bank BCA, Mandiri, BNI, dan Bank Lainnya.
-                </p>
               </div>
 
-              {/* Virtual Account Box */}
-              <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#E8DFD5] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-[#00529C] text-white flex items-center justify-center font-bold text-[10px]">
-                      BCA
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-[#2C221E]">BCA Virtual Account</div>
-                      <div className="text-[10px] text-[#7A7067]">Atas Nama: DEKORASIKU ATELIER</div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">
-                    Otomatis
+              <div className="p-4 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5] flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-[#7A7067] block uppercase font-semibold">Nomor Virtual Account</span>
+                  <span className="text-base sm:text-lg font-mono font-bold text-[#2C221E] tracking-wider">
+                    {vaNumber}
                   </span>
                 </div>
-
-                <div className="bg-white p-3 rounded-xl border border-[#E8DFD5] flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-[#7A7067] uppercase block">Nomor Virtual Account</span>
-                    <span className="font-mono text-base font-bold text-[#2C221E] tracking-wider">
-                      {vaNumber}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(vaNumber, 'va')}
-                    className="px-3 py-1.5 bg-[#FAF7F2] hover:bg-[#F2EAE1] text-xs font-semibold text-[#8C533C] rounded-lg border border-[#E8DFD5] flex items-center gap-1 cursor-pointer"
-                  >
-                    {copiedText === 'va' ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-emerald-700">Tersalin</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Salin No. VA</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(vaNumber, 'va')}
+                  className="px-3 py-1.5 bg-white hover:bg-[#F2EAE1] text-xs font-semibold text-[#8C533C] rounded-lg border border-[#E8DFD5] transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                >
+                  {copiedText === 'va' ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-emerald-700 font-bold">Tersalin</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Salin No. VA</span>
+                    </>
+                  )}
+                </button>
               </div>
 
-              {/* Steps */}
-              <div className="space-y-2 text-xs text-[#61574F]">
-                <span className="font-bold text-[#2C221E] block">Cara Pembayaran m-BCA:</span>
-                <ol className="list-decimal pl-4 space-y-1 leading-relaxed">
-                  <li>Buka aplikasi BCA Mobile / myBCA Anda.</li>
-                  <li>Pilih menu <strong>m-Transfer &gt; BCA Virtual Account</strong>.</li>
-                  <li>Masukkan nomor Virtual Account di atas: <strong>{vaNumber}</strong>.</li>
-                  <li>Masukkan jumlah transfer tepat: <strong>{formatIDR(order.total)}</strong>.</li>
-                  <li>Masukkan PIN m-BCA Anda dan simpan bukti transfer.</li>
-                </ol>
-              </div>
-
-              {/* Simulation button for test */}
+              {/* Simulation Button for Transfer */}
               {order.paymentStatus === 'menunggu_pembayaran' && onVerifyPayment && (
-                <div className="pt-2 border-t border-[#F2ECE3]">
+                <div className="pt-2">
                   <button
                     type="button"
                     disabled={isProcessingSim}
@@ -382,11 +385,11 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
                   >
                     <CheckCircle2 className="w-4 h-4 text-emerald-300" />
                     <span>
-                      {isProcessingSim ? 'Memverifikasi...' : 'Saya Sudah Transfer (Konfirmasi Sekarang)'}
+                      {isProcessingSim ? 'Memverifikasi...' : `Saya Sudah Transfer (${formatIDR(combinedTotal)})`}
                     </span>
                   </button>
                   <p className="text-[10px] text-center text-[#7A7067] mt-1.5">
-                    Klik tombol ini untuk mensimulasikan konfirmasi pelunasan transfer.
+                    Klik tombol ini untuk mensimulasikan konfirmasi pelunasan transfer bank.
                   </p>
                 </div>
               )}
@@ -402,7 +405,7 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
               </div>
               <p className="leading-relaxed">
                 Pesanan Anda telah dicatat dan masuk antrean bengkel. Silakan siapkan uang tunai pas sebesar{' '}
-                <strong className="text-[#2C221E] font-mono text-sm">{formatIDR(order.total)}</strong> saat kurir ekspedisi mengantarkan paket ke alamat Anda:
+                <strong className="text-[#2C221E] font-mono text-sm">{formatIDR(combinedTotal)}</strong> saat kurir ekspedisi mengantarkan paket ke alamat Anda:
               </p>
               <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
                 <div className="font-semibold text-[#2C221E]">{order.customerName}</div>
@@ -456,7 +459,7 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
         <div className="shrink-0 p-4 bg-white border-t border-[#E8DFD5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-1.5 text-[#7A7067]">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>dekorasiku Escrow & Keamanan Transaksi</span>
+            <span>dekorasiku Escrow & Keamanan Transaksi Multi-Pengrajin</span>
           </div>
 
           <div className="flex items-center justify-end gap-2">
@@ -464,8 +467,13 @@ export const PaymentInstructionModal: React.FC<PaymentInstructionModalProps> = (
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm(`Batalkan pesanan #${order.orderId}? Pesanan yang belum dibayar ini akan dibatalkan.`)) {
-                    onCancelOrder(order.orderId);
+                  const label = isMultiPackage ? `${activeOrders.length} pesanan multi-pengrajin` : `pesanan #${order.orderId}`;
+                  if (window.confirm(`Batalkan ${label}? Pesanan yang belum dibayar ini akan dibatalkan.`)) {
+                    if (isMultiPackage) {
+                      onCancelOrder(activeOrders.map((o) => o.orderId));
+                    } else {
+                      onCancelOrder(order.orderId);
+                    }
                     onClose();
                   }
                 }}

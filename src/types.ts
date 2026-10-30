@@ -81,6 +81,13 @@ export interface OrderDetails {
   paymentStatus: 'menunggu_pembayaran' | 'terverifikasi_otomatis' | 'terverifikasi_manual' | 'batal';
   orderStatus: 'menunggu_pembayaran' | 'menunggu_konfirmasi' | 'diproses' | 'dikirim' | 'selesai' | 'dibatalkan';
   paymentReference?: string;
+  paymentGroupId?: string; // ID grup pembayaran untuk pesanan multi-pengrajin (mis. PAY-7821)
+  paymentGroupTotal?: number; // Total gabungan yang dibayarkan pelanggan dalam 1 transaksi
+  packageIndex?: number; // Urutan paket (misal 1 untuk Paket 1 dari 3)
+  totalPackages?: number; // Total paket pengrajin dalam grup pembayaran
+  artisanId?: string; // ID pengrajin pembuat kriya paket ini
+  artisanName?: string; // Nama pengrajin pembuat kriya paket ini
+  artisanWorkshopName?: string; // Nama workshop kriya
   verifiedAt?: string;
   confirmedByArtisanAt?: string;
   confirmedByArtisanIso?: string;

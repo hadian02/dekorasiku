@@ -54,7 +54,7 @@ import { Check, Heart } from 'lucide-react';
 
 // One-time cleanup of mock demo data for user testing (reset customers, artisans, orders, chats)
 const FRESH_TEST_KEY = 'kala_kriya_test_reset_v3_clean';
-const ARTISAN_AUTO_LOGIN_FIX_KEY_V6 = 'dekorasiku_artisan_clean_v6_clean';
+const ARTISAN_AUTO_LOGIN_FIX_KEY_V8 = 'dekorasiku_artisan_clean_v8_strict';
 if (typeof window !== 'undefined') {
   try {
     if (!localStorage.getItem(FRESH_TEST_KEY)) {
@@ -72,12 +72,16 @@ if (typeof window !== 'undefined') {
       localStorage.removeItem('kala_kriya_published_products');
       localStorage.setItem(FRESH_TEST_KEY, 'true');
     }
-    if (!localStorage.getItem(ARTISAN_AUTO_LOGIN_FIX_KEY_V6)) {
+    if (!localStorage.getItem(ARTISAN_AUTO_LOGIN_FIX_KEY_V8)) {
       localStorage.removeItem('kala_kriya_active_artisan');
       localStorage.removeItem('kala_kriya_active_artisan_v2');
+      localStorage.removeItem('kala_kriya_active_artisan_v3');
+      localStorage.removeItem('kala_kriya_active_artisan_v4');
+      localStorage.removeItem('kala_kriya_active_artisan_v5');
       sessionStorage.removeItem('kala_kriya_active_artisan');
       sessionStorage.removeItem('kala_kriya_active_artisan_v2');
-      localStorage.setItem(ARTISAN_AUTO_LOGIN_FIX_KEY_V6, 'true');
+      sessionStorage.removeItem('kala_kriya_active_artisan_v5');
+      localStorage.setItem(ARTISAN_AUTO_LOGIN_FIX_KEY_V8, 'true');
     }
   } catch {
     // ignore
@@ -157,11 +161,24 @@ export default function App() {
     }
   });
 
-  // Registered Artisans State (with LocalStorage persistence)
+  // Registered Artisans State (with LocalStorage persistence and auto-merge for pending demo accounts)
   const [registeredArtisans, setRegisteredArtisans] = useState<Artisan[]>(() => {
     try {
       const saved = localStorage.getItem('kala_kriya_registered_artisans');
-      return saved ? JSON.parse(saved) : INITIAL_REGISTERED_ARTISANS;
+      if (saved) {
+        const parsed: Artisan[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingEmails = new Set(parsed.map((a) => a.email.toLowerCase()));
+          const missing = INITIAL_REGISTERED_ARTISANS.filter(
+            (a) => !existingEmails.has(a.email.toLowerCase())
+          );
+          if (missing.length > 0) {
+            return [...parsed, ...missing];
+          }
+          return parsed;
+        }
+      }
+      return INITIAL_REGISTERED_ARTISANS;
     } catch {
       return INITIAL_REGISTERED_ARTISANS;
     }
@@ -170,7 +187,7 @@ export default function App() {
   // Artisan State with LocalStorage persistence: defaults to null (no artisan auto-logged in)
   const [artisan, setArtisan] = useState<Artisan | null>(() => {
     try {
-      const saved = localStorage.getItem('kala_kriya_active_artisan_v2') || localStorage.getItem('kala_kriya_active_artisan');
+      const saved = localStorage.getItem('kala_kriya_active_artisan_v5');
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -271,7 +288,8 @@ export default function App() {
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
   const [isOrdersModalOpen, setIsOrdersModalOpen] = useState<boolean>(false);
-  const [pendingPaymentOrder, setPendingPaymentOrder] = useState<OrderDetails | null>(null);
+  const [pendingPaymentOrders, setPendingPaymentOrders] = useState<OrderDetails[] | null>(null);
+  const pendingPaymentOrder = pendingPaymentOrders && pendingPaymentOrders.length > 0 ? pendingPaymentOrders[0] : null;
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [chatTargetOrderId, setChatTargetOrderId] = useState<string | undefined>(undefined);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -374,7 +392,7 @@ export default function App() {
     const handlePopState = () => {
       isHandlingPopState.current = true;
       setIsCheckoutOpen(false);
-      setPendingPaymentOrder(null);
+      setPendingPaymentOrders(null);
       setIsCartOpen(false);
       setIsWishlistOpen(false);
       setIsAuthOpen(false);
@@ -482,8 +500,9 @@ export default function App() {
   useEffect(() => {
     try {
       if (artisan) {
-        localStorage.setItem('kala_kriya_active_artisan_v2', JSON.stringify(artisan));
+        localStorage.setItem('kala_kriya_active_artisan_v5', JSON.stringify(artisan));
       } else {
+        localStorage.removeItem('kala_kriya_active_artisan_v5');
         localStorage.removeItem('kala_kriya_active_artisan_v2');
         localStorage.removeItem('kala_kriya_active_artisan');
       }
@@ -624,9 +643,10 @@ export default function App() {
   };
 
   // Called when customer confirms checkout: directly opens payment instructions
-  const handleProceedToPayment = (pendingOrder: OrderDetails) => {
+  const handleProceedToPayment = (orders: OrderDetails[] | OrderDetails) => {
+    const list = Array.isArray(orders) ? orders : [orders];
     setIsCheckoutOpen(false);
-    setPendingPaymentOrder(pendingOrder);
+    setPendingPaymentOrders(list);
   };
 
   const handleLoginSuccess = (loggedInCustomer: Customer) => {
@@ -717,6 +737,12 @@ export default function App() {
     try {
       localStorage.removeItem('kala_kriya_active_artisan');
       localStorage.removeItem('kala_kriya_active_artisan_v2');
+      localStorage.removeItem('kala_kriya_active_artisan_v3');
+      localStorage.removeItem('kala_kriya_active_artisan_v4');
+      localStorage.removeItem('kala_kriya_active_artisan_v5');
+      sessionStorage.removeItem('kala_kriya_active_artisan');
+      sessionStorage.removeItem('kala_kriya_active_artisan_v2');
+      sessionStorage.removeItem('kala_kriya_active_artisan_v5');
     } catch (e) {
       console.error(e);
     }
@@ -798,7 +824,7 @@ export default function App() {
     showToast(`Status pesanan #${orderId} diubah menjadi: ${newStatus}`, 'check');
   };
 
-  const handleVerifyPayment = (orderId: string, mode: 'otomatis' | 'manual') => {
+  const handleVerifyPayment = (orderIdOrIds: string | string[], mode: 'otomatis' | 'manual') => {
     const time = new Date().toLocaleString('id-ID', {
       day: 'numeric',
       month: 'short',
@@ -806,61 +832,73 @@ export default function App() {
       minute: '2-digit',
     });
 
-    // Check if this payment is for newly placed pending order from checkout
-    if (pendingPaymentOrder && pendingPaymentOrder.orderId === orderId) {
-      const paidOrder: OrderDetails = {
-        ...pendingPaymentOrder,
-        paymentStatus: mode === 'otomatis' ? 'terverifikasi_otomatis' : 'terverifikasi_manual',
-        orderStatus: 'menunggu_konfirmasi', // Tidak langsung diproses, menunggu konfirmasi pengrajin
-        verifiedAt: `${time} (${mode === 'otomatis' ? 'QRIS Webhook Gateway' : 'Verifikasi Bank / COD'})`,
-      };
+    const targetIds = Array.isArray(orderIdOrIds) ? orderIdOrIds : [orderIdOrIds];
 
-      // Add to list of orders ("Setelah dibayar baru masuk ke list Pesanan")
-      setOrders((prev) => [paidOrder, ...prev]);
+    // Check if this payment is for newly placed pending orders from checkout
+    if (pendingPaymentOrders && pendingPaymentOrders.length > 0) {
+      const matchFound = pendingPaymentOrders.some((o) => targetIds.includes(o.orderId));
+      if (matchFound) {
+        const verifiedText = `${time} (${mode === 'otomatis' ? 'QRIS Webhook Gateway' : 'Verifikasi Bank / COD'})`;
 
-      // Push to Live Firestore immediately so any connected PC, mobile, or admin sees it in real time
-      createLiveOrder(paidOrder).catch((err) => console.error('Failed to create live order in Firestore:', err));
+        const paidOrders: OrderDetails[] = pendingPaymentOrders.map((pOrder) => ({
+          ...pOrder,
+          paymentStatus: mode === 'otomatis' ? 'terverifikasi_otomatis' : 'terverifikasi_manual',
+          orderStatus: 'menunggu_konfirmasi',
+          verifiedAt: verifiedText,
+        }));
 
-      // Synchronize stock deduction in live database
-      paidOrder.items.forEach((item) => {
-        const matched = catalogProducts.find((p) => p.id === item.product.id);
-        if (matched) {
-          const newStock = Math.max(0, matched.stock - item.quantity);
-          updateLiveProductStock(item.product.id, newStock).catch(console.error);
+        // Add all split orders to list of orders
+        setOrders((prev) => [...paidOrders, ...prev]);
+
+        // Push each to Live Firestore immediately
+        paidOrders.forEach((paidOrder) => {
+          createLiveOrder(paidOrder).catch((err) => console.error('Failed to create live order in Firestore:', err));
+
+          // Synchronize stock deduction in live database
+          paidOrder.items.forEach((item) => {
+            const matched = catalogProducts.find((p) => p.id === item.product.id);
+            if (matched) {
+              const newStock = Math.max(0, matched.stock - item.quantity);
+              updateLiveProductStock(item.product.id, newStock).catch(console.error);
+            }
+          });
+        });
+
+        setCartItems([]);
+        setGiftWrapping(false);
+        setAppliedPromo('');
+
+        if (customer) {
+          try {
+            localStorage.removeItem(`kala_kriya_cart_${customer.id}`);
+          } catch (e) {
+            console.error(e);
+          }
         }
-      });
 
-      setCartItems([]);
-      setGiftWrapping(false);
-      setAppliedPromo('');
-
-      if (customer) {
-        try {
-          localStorage.removeItem(`kala_kriya_cart_${customer.id}`);
-        } catch (e) {
-          console.error(e);
-        }
+        const totalOrdersCount = paidOrders.length;
+        setPendingPaymentOrders(null);
+        showToast(
+          totalOrdersCount > 1
+            ? `Pembayaran terpadu lunas! Dibuat ${totalOrdersCount} pesanan terpisah untuk masing-masing pengrajin.`
+            : mode === 'otomatis'
+            ? `Pembayaran QRIS #${paidOrders[0].orderId} lunas! Pesanan masuk menunggu konfirmasi pengrajin.`
+            : `Pesanan #${paidOrders[0].orderId} lunas & menunggu konfirmasi pengrajin!`,
+          'check'
+        );
+        setIsOrdersModalOpen(true);
+        return;
       }
-
-      setPendingPaymentOrder(null);
-      showToast(
-        mode === 'otomatis'
-          ? `Pembayaran QRIS #${orderId} lunas! Pesanan masuk menunggu konfirmasi pengrajin.`
-          : `Pesanan #${orderId} lunas & menunggu konfirmasi pengrajin!`,
-        'check'
-      );
-      setIsOrdersModalOpen(true);
-      return;
     }
 
-    // Otherwise update existing order in orders list
+    // Otherwise update existing orders in orders list
     const updatedStatus = 'menunggu_konfirmasi';
     const updatedPaymentStatus = mode === 'otomatis' ? 'terverifikasi_otomatis' : 'terverifikasi_manual';
     const verifiedText = `${time} (${mode === 'otomatis' ? 'QRIS Webhook Gateway' : 'Verifikasi Manual Admin'})`;
 
     setOrders((prev) =>
       prev.map((o) =>
-        o.orderId === orderId
+        targetIds.includes(o.orderId)
           ? {
               ...o,
               paymentStatus: updatedPaymentStatus,
@@ -871,16 +909,18 @@ export default function App() {
       )
     );
 
-    updateLiveOrder(orderId, {
-      paymentStatus: updatedPaymentStatus,
-      orderStatus: updatedStatus,
-      verifiedAt: verifiedText,
-    }).catch(console.error);
+    targetIds.forEach((orderId) => {
+      updateLiveOrder(orderId, {
+        paymentStatus: updatedPaymentStatus,
+        orderStatus: updatedStatus,
+        verifiedAt: verifiedText,
+      }).catch(console.error);
+    });
 
     showToast(
       mode === 'otomatis'
-        ? `Pembayaran QRIS #${orderId} lunas & menunggu konfirmasi pengrajin!`
-        : `Pembayaran #${orderId} terverifikasi & menunggu konfirmasi pengrajin.`,
+        ? `Pembayaran QRIS lunas & menunggu konfirmasi pengrajin!`
+        : `Pembayaran terverifikasi & menunggu konfirmasi pengrajin.`,
       'check'
     );
   };
@@ -965,7 +1005,8 @@ export default function App() {
   };
 
   // Customer can cancel order before it is processed by artisan ("Sebelum diproses user masih dapat membatalkan pesanan")
-  const handleCancelOrder = (orderId: string) => {
+  const handleCancelOrder = (orderIdOrIds: string | string[]) => {
+    const targetIds = Array.isArray(orderIdOrIds) ? orderIdOrIds : [orderIdOrIds];
     const cancelTime = new Date().toLocaleString('id-ID', {
       day: 'numeric',
       month: 'short',
@@ -974,18 +1015,19 @@ export default function App() {
       minute: '2-digit',
     });
 
-    if (pendingPaymentOrder && pendingPaymentOrder.orderId === orderId) {
-      setPendingPaymentOrder(null);
-      showToast(`Pesanan #${orderId} berhasil dibatalkan.`, 'check');
+    if (pendingPaymentOrders && pendingPaymentOrders.some((o) => targetIds.includes(o.orderId))) {
+      setPendingPaymentOrders(null);
+      showToast('Pesanan yang belum dibayar berhasil dibatalkan.', 'check');
       return;
     }
 
-    let wasAlreadyPaid = false;
-
     setOrders((prev) =>
       prev.map((o) => {
-        if (o.orderId !== orderId) return o;
-        wasAlreadyPaid = o.paymentStatus === 'terverifikasi_otomatis' || o.paymentStatus === 'terverifikasi_manual' || o.orderStatus === 'menunggu_konfirmasi';
+        if (!targetIds.includes(o.orderId)) return o;
+        const wasAlreadyPaid =
+          o.paymentStatus === 'terverifikasi_otomatis' ||
+          o.paymentStatus === 'terverifikasi_manual' ||
+          o.orderStatus === 'menunggu_konfirmasi';
         return {
           ...o,
           orderStatus: 'dibatalkan',
@@ -997,20 +1039,17 @@ export default function App() {
       })
     );
 
-    updateLiveOrder(orderId, {
-      orderStatus: 'dibatalkan',
-      paymentStatus: 'batal',
-      refundStatus: wasAlreadyPaid ? 'proses_refund' : 'none',
-      cancelledAt: cancelTime,
-      cancellationReason: 'Dibatalkan oleh pelanggan sebelum diproses pengrajin',
-    }).catch(console.error);
+    targetIds.forEach((orderId) => {
+      updateLiveOrder(orderId, {
+        orderStatus: 'dibatalkan',
+        paymentStatus: 'batal',
+        cancelledAt: cancelTime,
+      }).catch(console.error);
+    });
 
-    if (wasAlreadyPaid) {
-      showToast(`Pesanan #${orderId} berhasil dibatalkan. Pengembalian dana 100% diproses ke rekening/e-wallet Anda.`, 'check');
-    } else {
-      showToast(`Pesanan #${orderId} berhasil dibatalkan.`, 'check');
-    }
+    showToast('Pesanan berhasil dibatalkan.', 'check');
   };
+
 
   // Customer confirms order receipt -> triggers Escrow payout release to Artisan
   const handleConfirmOrderReceipt = (orderId: string) => {
@@ -1710,18 +1749,19 @@ export default function App() {
       />
 
       {/* Standalone Payment Instruction & Gateway Modal for new checkout */}
-      {pendingPaymentOrder && (
+      {pendingPaymentOrders && pendingPaymentOrders.length > 0 && (
         <PaymentInstructionModal
-          isOpen={pendingPaymentOrder !== null}
-          order={pendingPaymentOrder}
+          isOpen={pendingPaymentOrders.length > 0}
+          order={pendingPaymentOrders[0]}
+          ordersGroup={pendingPaymentOrders}
           onClose={() => {
-            setPendingPaymentOrder(null);
+            setPendingPaymentOrders(null);
             showToast('Pembayaran ditunda. Keranjang belanja Anda tetap aman tersimpan.', 'check');
           }}
           onVerifyPayment={handleVerifyPayment}
           onCancelOrder={handleCancelOrder}
           onOpenChatWithOrder={(orderId) => {
-            setPendingPaymentOrder(null);
+            setPendingPaymentOrders(null);
             setChatTargetOrderId(orderId);
             setIsChatOpen(true);
           }}

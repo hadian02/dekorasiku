@@ -200,18 +200,20 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
 
   // Filter orders relevant to this artisan
   const artisanOrders = artisan
-    ? orders.filter((o) =>
-        o.items.some((it) => {
-          if (!it.product?.artisan) return true;
+    ? orders.filter((o) => {
+        if (o.artisanId && o.artisanId === artisan.id) return true;
+        if (o.artisanName && artisan.name && o.artisanName.toLowerCase() === artisan.name.toLowerCase()) return true;
+        return o.items.some((it) => {
+          if (!it.product?.artisan) return false;
           if (it.product.artisan.id && it.product.artisan.id === artisan.id) return true;
           if (it.product.artisan.name && artisan.name && it.product.artisan.name.toLowerCase() === artisan.name.toLowerCase()) return true;
           if (it.product.artisan.workshopName && artisan.workshopName && it.product.artisan.workshopName.toLowerCase() === artisan.workshopName.toLowerCase()) return true;
           return false;
-        })
-      )
+        });
+      })
     : orders;
 
-  const relevantOrders = artisanOrders.length > 0 ? artisanOrders : orders;
+  const relevantOrders = artisan ? artisanOrders : orders;
 
   const pesananBaruCount = relevantOrders.filter(
     (o) =>
@@ -890,11 +892,13 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
           <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
-                onClick={onBackToStore}
-                className="px-3 py-1.5 bg-[#FAF7F2] hover:bg-[#F2EAE1] text-[#2C221E] rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-[#E8DFD5]"
+                type="button"
+                onClick={onLogoutArtisan}
+                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-red-200 transition-colors cursor-pointer"
+                title="Keluar dari akun pengrajin"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Ke Toko</span>
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
               </button>
               <div className="font-serif font-bold text-lg text-[#2C221E]">
                 Portal Mitra Pengrajin Kala Kriya
@@ -1187,94 +1191,101 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#2C221E] flex flex-col">
       {/* Top Artisan Navbar */}
-      <header className="sticky top-0 z-40 bg-[#2C221E] text-white border-b border-[#43352F]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onBackToStore}
-              className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-[#D9C3B0] hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Ke Toko</span>
-            </button>
-            <div className="h-6 w-px bg-white/20 hidden sm:block" />
-            <div>
-              <div className="font-serif text-base font-bold text-white flex items-center gap-2">
-                <span>{artisan.workshopName || artisan.name}</span>
-                <span className="text-[10px] bg-emerald-700 text-white px-2 py-0.5 rounded-full font-sans font-medium flex items-center gap-1">
+      <header className="sticky top-0 z-40 bg-[#2C221E] text-white border-b border-[#43352F] shadow-md">
+        {/* Row 1: Workshop & Artisan Header Info + Logout */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-[#8C533C] text-white flex items-center justify-center font-bold text-sm shadow-inner shrink-0">
+              <Hammer className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-serif text-base sm:text-lg font-bold text-white flex items-center gap-2 truncate">
+                <span className="truncate">{artisan.workshopName || artisan.name}</span>
+                <span className="text-[10px] bg-emerald-700 text-white px-2 py-0.5 rounded-full font-sans font-medium flex items-center gap-1 shrink-0">
                   <CheckCircle2 className="w-3 h-3 text-white" />
-                  <span>Disetujui Admin ({artisan.approvedAt || 'Aktif'})</span>
+                  <span>Mitra Terverifikasi</span>
                 </span>
                 {isSubdomain && (
-                  <span className="text-[10px] bg-[#8C533C] text-white border border-[#D9C3B0]/40 px-2 py-0.5 rounded-full font-mono">
+                  <span className="text-[10px] bg-[#8C533C] text-white border border-[#D9C3B0]/40 px-2 py-0.5 rounded-full font-mono shrink-0">
                     mitra.*
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-[#D9C3B0] hidden sm:block">
-                Pengrajin: {artisan.name} · {artisan.location || 'Nusantara'}
+              <p className="text-xs text-[#D9C3B0] mt-0.5 truncate">
+                Pengrajin: {artisan.name} · {artisan.location || 'Nusantara'} · {artisan.specialty || 'Kriya Tradisional'}
               </p>
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="flex items-center gap-2">
-            <nav className="flex items-center gap-1 bg-white/10 p-1 rounded-xl text-xs">
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={onLogoutArtisan}
+              className="px-3.5 py-2 bg-red-900/50 hover:bg-red-800/70 text-red-200 hover:text-white border border-red-700/60 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              title="Keluar dari akun pengrajin"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: Full-Width Horizontal Tab Navigation Bar (Under Page Title) */}
+        <div className="border-t border-[#43352F]/80 bg-[#241B18]/95 backdrop-blur-xs">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 overflow-x-auto">
+            <nav className="flex items-center gap-1.5 min-w-max">
               <button
                 onClick={() => setActiveTab('orders')}
-                className={`px-3 py-1.5 font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === 'orders'
-                    ? 'bg-[#8C533C] text-white shadow-xs'
-                    : 'text-[#D9C3B0] hover:text-white'
+                    ? 'bg-[#8C533C] text-white shadow-xs font-bold'
+                    : 'text-[#D9C3B0] hover:text-white hover:bg-white/10'
                 }`}
               >
-                <Package className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Pesanan Kriya Masuk</span>
-                <span className="sm:hidden">Pesanan</span>
-                {orders.filter((o) => o.orderStatus === 'menunggu_konfirmasi').length > 0 ? (
-                  <span className="text-[10px] bg-amber-500 text-white font-bold px-1.5 py-0.2 rounded-full animate-pulse">
-                    {orders.filter((o) => o.orderStatus === 'menunggu_konfirmasi').length} Baru
+                <Package className="w-4 h-4" />
+                <span>Pesanan Kriya Masuk</span>
+                {relevantOrders.filter((o) => o.orderStatus === 'menunggu_konfirmasi').length > 0 ? (
+                  <span className="text-[10px] bg-amber-500 text-black font-bold px-2 py-0.5 rounded-full animate-pulse">
+                    {relevantOrders.filter((o) => o.orderStatus === 'menunggu_konfirmasi').length} Baru
                   </span>
                 ) : (
-                  <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full">
-                    {orders.length}
+                  <span className="text-[10px] bg-black/40 px-2 py-0.5 rounded-full">
+                    {relevantOrders.length}
                   </span>
                 )}
               </button>
 
               <button
                 onClick={() => setActiveTab('proposals')}
-                className={`px-3 py-1.5 font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === 'proposals'
-                    ? 'bg-[#8C533C] text-white shadow-xs'
-                    : 'text-[#D9C3B0] hover:text-white'
+                    ? 'bg-[#8C533C] text-white shadow-xs font-bold'
+                    : 'text-[#D9C3B0] hover:text-white hover:bg-white/10'
                 }`}
               >
-                <Hammer className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Penawaran Kriya & Chat</span>
-                <span className="sm:hidden">Penawaran</span>
-                <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full">
+                <Hammer className="w-4 h-4" />
+                <span>Penawaran Kriya & Chat Studio</span>
+                <span className="text-[10px] bg-black/40 px-2 py-0.5 rounded-full">
                   {artisanProposals.length}
                 </span>
               </button>
 
               <button
                 onClick={() => setActiveTab('stock')}
-                className={`px-3 py-1.5 font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === 'stock'
-                    ? 'bg-[#8C533C] text-white shadow-xs'
-                    : 'text-[#D9C3B0] hover:text-white'
+                    ? 'bg-[#8C533C] text-white shadow-xs font-bold'
+                    : 'text-[#D9C3B0] hover:text-white hover:bg-white/10'
                 }`}
               >
-                <Layers className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Kelola Stok & Kode Kriya</span>
-                <span className="sm:hidden">Stok</span>
+                <Layers className="w-4 h-4" />
+                <span>Kelola Stok & Kode Kriya</span>
                 {catalogProducts.some((p) => p.stock === 0) ? (
-                  <span className="text-[10px] bg-red-600 text-white font-bold px-1.5 py-0.2 rounded-full">
+                  <span className="text-[10px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-full">
                     {catalogProducts.filter((p) => p.stock === 0).length} Habis
                   </span>
                 ) : (
-                  <span className="text-[10px] bg-black/30 px-1.5 py-0.2 rounded-full">
+                  <span className="text-[10px] bg-black/40 px-2 py-0.5 rounded-full">
                     {catalogProducts.length}
                   </span>
                 )}
@@ -1282,29 +1293,21 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
 
               <button
                 onClick={() => setActiveTab('wallet')}
-                className={`px-3 py-1.5 font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === 'wallet'
-                    ? 'bg-[#8C533C] text-white shadow-xs'
-                    : 'text-[#D9C3B0] hover:text-white'
+                    ? 'bg-[#8C533C] text-white shadow-xs font-bold'
+                    : 'text-[#D9C3B0] hover:text-white hover:bg-white/10'
                 }`}
               >
-                <Wallet className="w-3.5 h-3.5" />
+                <Wallet className="w-4 h-4" />
                 <span>Pencairan Dana Escrow</span>
                 {readyPayoutAmount > 0 && (
-                  <span className="text-[10px] bg-emerald-500 text-white px-1.5 py-0.2 rounded-full font-bold">
-                    Siap
+                  <span className="text-[10px] bg-emerald-500 text-black px-2 py-0.5 rounded-full font-bold">
+                    Siap Dicairkan
                   </span>
                 )}
               </button>
             </nav>
-
-            <button
-              onClick={onLogoutArtisan}
-              className="p-2 text-[#D9C3B0] hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              title="Keluar dari Akun Pengrajin"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </header>
