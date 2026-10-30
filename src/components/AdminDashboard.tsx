@@ -46,7 +46,8 @@ import {
   BarChart3,
   Layers,
   ChevronRight,
-  LogOut
+  LogOut,
+  Image as ImageIcon
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -1283,11 +1284,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       }`}
                     >
                       <div className="flex gap-3">
-                        <img
-                          src={prop.sampleImage}
-                          alt={prop.title}
-                          className="w-16 h-16 rounded-lg object-cover border border-[#E8DFD5] shrink-0"
-                        />
+                        <div className="relative shrink-0">
+                          <img
+                            src={prop.sampleImage}
+                            alt={prop.title}
+                            className="w-16 h-16 rounded-lg object-cover border border-[#E8DFD5]"
+                          />
+                          {prop.sampleImages && prop.sampleImages.length > 1 && (
+                            <span className="absolute bottom-0 right-0 bg-black/75 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-tl rounded-br">
+                              {prop.sampleImages.length} Foto
+                            </span>
+                          )}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1">
                             <span className="text-[10px] uppercase font-bold text-[#8C533C] tracking-wider">
@@ -1394,6 +1402,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </button>
                       )}
                     </div>
+
+                    {/* Multi-Photo Review Strip for Admin */}
+                    {activeProposal.sampleImages && activeProposal.sampleImages.length > 1 && (
+                      <div className="px-4 py-2 bg-white border-b border-[#E8DFD5] flex items-center gap-2 overflow-x-auto">
+                        <span className="text-[10px] font-bold text-[#8C533C] whitespace-nowrap flex items-center gap-1">
+                          <ImageIcon className="w-3.5 h-3.5 text-[#8C533C]" />
+                          <span>{activeProposal.sampleImages.length} Foto Purwarupa Pengrajin:</span>
+                        </span>
+                        <div className="flex items-center gap-1.5 overflow-x-auto">
+                          {activeProposal.sampleImages.map((img, i) => (
+                            <img
+                              key={i}
+                              src={img}
+                              alt={`${activeProposal.title} ${i + 1}`}
+                              className="w-9 h-9 rounded-lg object-cover border border-[#E8DFD5] shrink-0 hover:scale-105 transition-transform"
+                              title={`Foto ${i + 1}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Messages Stream */}
                     <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#FAF7F2]/30 max-h-[390px]">

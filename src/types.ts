@@ -157,6 +157,7 @@ export interface ArtisanProposal {
   initialDescription: string;
   proposedPrice: number;
   sampleImage: string;
+  sampleImages?: string[]; // Mendukung hingga 5 foto purwarupa/contoh kriya
   status: 'menunggu_review' | 'dalam_negosiasi' | 'disetujui' | 'ditolak' | 'tayang_di_toko';
   createdAt: string;
   approvedAt?: string;

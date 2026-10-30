@@ -1198,8 +1198,10 @@ export default function App() {
     initialDescription: string;
     proposedPrice: number;
     sampleImage: string;
+    sampleImages?: string[];
   }) => {
     const newProposalId = `prop-${Date.now()}`;
+    const imagesList = data.sampleImages && data.sampleImages.length > 0 ? data.sampleImages : [data.sampleImage];
     const newProposal: ArtisanProposal = {
       id: newProposalId,
       artisanId: artisan?.id || 'artisan-wayan',
@@ -1210,7 +1212,8 @@ export default function App() {
       categoryLabel: data.categoryLabel,
       initialDescription: data.initialDescription,
       proposedPrice: data.proposedPrice,
-      sampleImage: data.sampleImage,
+      sampleImage: imagesList[0],
+      sampleImages: imagesList,
       status: 'dalam_negosiasi',
       createdAt: new Date().toISOString().split('T')[0],
     };
