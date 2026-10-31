@@ -142,7 +142,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
   // Dashboard Active Tab
   const [activeTab, setActiveTab] = useState<'orders' | 'proposals' | 'stock' | 'wallet'>('orders');
   const [stockSearchQuery, setStockSearchQuery] = useState('');
-  const [stockFilterMode, setStockFilterMode] = useState<'all' | 'mine' | 'out_of_stock'>('all');
+  const [stockFilterMode, setStockFilterMode] = useState<'mine' | 'out_of_stock' | 'all'>('mine');
   const [customStockInputs, setCustomStockInputs] = useState<Record<string, string>>({});
 
   // Order Tabs (5 requested tabs) & Search State for Artisan Portal
@@ -168,7 +168,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   // Active Proposal Chat Thread
-  const [selectedProposalId, setSelectedProposalId] = useState<string>('prop-101');
+  const [selectedProposalId, setSelectedProposalId] = useState<string>('');
   const [chatInput, setChatInput] = useState('');
 
   // Publishing Modal for Approved Proposal
@@ -201,9 +201,14 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
     .filter((p) => p.status === 'dicairkan_ke_rekening')
     .reduce((sum, p) => sum + p.amount, 0);
 
-  // Filter proposals for current artisan
+  // Filter proposals strictly for current artisan (match by id, name, or workshop)
   const artisanProposals = artisan
-    ? proposals.filter((p) => p.artisanId === artisan.id)
+    ? proposals.filter((p) => {
+        if (p.artisanId && artisan.id && p.artisanId.toLowerCase() === artisan.id.toLowerCase()) return true;
+        if (p.artisanName && artisan.name && p.artisanName.trim().toLowerCase() === artisan.name.trim().toLowerCase()) return true;
+        if (p.workshopName && artisan.workshopName && p.workshopName.trim().toLowerCase() === artisan.workshopName.trim().toLowerCase()) return true;
+        return false;
+      })
     : proposals;
 
   // Filter orders relevant to this artisan
@@ -264,19 +269,34 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
 
   // Helper untuk mengecek apakah kriya milik pengrajin yang sedang login
   const checkIsMine = (p: Product): boolean => {
-    if (!artisan) return true;
-    if (p.artisan.name.toLowerCase() === artisan.name.toLowerCase()) return true;
-    if (artisan.workshopName && p.artisan.workshopName) {
-      return p.artisan.workshopName.toLowerCase() === artisan.workshopName.toLowerCase();
+    if (!artisan) return false;
+    // 1. Cek ID Pengrajin
+    if (p.artisan?.id && artisan.id && p.artisan.id.toLowerCase() === artisan.id.toLowerCase()) return true;
+    // 2. Cek Nomor Urut Pengrajin
+    if (p.artisan?.seqNumber && artisan.seqNumber && p.artisan.seqNumber === artisan.seqNumber) return true;
+    // 3. Cek Nama Pengrajin
+    if (p.artisan?.name && artisan.name && p.artisan.name.trim().toLowerCase() === artisan.name.trim().toLowerCase()) return true;
+    // 4. Cek Nama Bengkel / Usaha
+    if (p.artisan?.workshopName && artisan.workshopName && p.artisan.workshopName.trim().toLowerCase() === artisan.workshopName.trim().toLowerCase()) return true;
+    // 5. Cek Kode Barang Prefix Heksa Pengrajin
+    if (p.productCode && artisan.seqNumber) {
+      const parsed = parseProductCode(p.productCode);
+      if (parsed.isValid && parsed.artisanSeqDec === artisan.seqNumber) return true;
     }
     return false;
   };
+
+  const myStockProducts = catalogProducts.filter(checkIsMine);
+  const myOutOfStockProducts = myStockProducts.filter((p) => p.stock <= 0);
 
   // Filter kriya untuk Tab Kelola Stok & Kode Barang
   const filteredStockProducts = catalogProducts.filter((p) => {
     const isMine = checkIsMine(p);
     if (stockFilterMode === 'mine' && !isMine) return false;
-    if (stockFilterMode === 'out_of_stock' && p.stock > 0) return false;
+    if (stockFilterMode === 'out_of_stock') {
+      if (!isMine) return false;
+      if (p.stock > 0) return false;
+    }
 
     if (stockSearchQuery.trim()) {
       const q = stockSearchQuery.toLowerCase().trim();
@@ -289,8 +309,14 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
     return true;
   });
 
-  const activeProposal = proposals.find((p) => p.id === selectedProposalId) || proposals[0];
-  const activeChats = proposalChats.filter((c) => c.proposalId === selectedProposalId);
+  // CRITICAL FIX: Only select proposal that belongs to THIS artisan (never leak proposals of another artisan)
+  const activeProposal =
+    artisanProposals.find((p) => p.id === selectedProposalId) ||
+    artisanProposals[0] ||
+    null;
+  const activeChats = activeProposal
+    ? proposalChats.filter((c) => c.proposalId === activeProposal.id)
+    : [];
 
   // Auth Submit Handlers
   const handleArtisanLogin = (e: React.FormEvent) => {
@@ -1351,13 +1377,13 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
               >
                 <Layers className="w-4 h-4" />
                 <span>Kelola Stok & Kode Kriya</span>
-                {catalogProducts.some((p) => p.stock === 0) ? (
+                {myOutOfStockProducts.length > 0 ? (
                   <span className="text-[10px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-full">
-                    {catalogProducts.filter((p) => p.stock === 0).length} Habis
+                    {myOutOfStockProducts.length} Habis
                   </span>
                 ) : (
                   <span className="text-[10px] bg-black/40 px-2 py-0.5 rounded-full">
-                    {catalogProducts.length}
+                    {myStockProducts.length}
                   </span>
                 )}
               </button>
@@ -1857,99 +1883,123 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[560px]">
               {/* Left Column: Proposals Cards */}
               <div className="lg:col-span-5 space-y-3">
-                {artisanProposals.map((prop) => {
-                  const isSelected = prop.id === selectedProposalId;
-
-                  return (
-                    <div
-                      key={prop.id}
-                      onClick={() => setSelectedProposalId(prop.id)}
-                      className={`p-4 bg-white rounded-xl border cursor-pointer transition-all ${
-                        isSelected
-                          ? 'border-[#8C533C] shadow-sm bg-[#FDFBF9] ring-1 ring-[#8C533C]'
-                          : 'border-[#E8DFD5] hover:border-[#D5C6B7]'
-                      }`}
-                    >
-                      <div className="flex gap-3">
-                        <div className="relative shrink-0">
-                          <img
-                            src={prop.sampleImage}
-                            alt={prop.title}
-                            className="w-16 h-16 rounded-lg object-cover border border-[#E8DFD5]"
-                          />
-                          {prop.sampleImages && prop.sampleImages.length > 1 && (
-                            <span className="absolute bottom-1 right-1 bg-black/75 text-white text-[9px] font-bold px-1 py-0.5 rounded flex items-center gap-0.5">
-                              <ImageIcon className="w-2.5 h-2.5" />
-                              <span>{prop.sampleImages.length}</span>
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-[10px] uppercase font-bold text-[#8C533C] tracking-wider">
-                              {prop.categoryLabel}
-                            </span>
-                            {/* Status badge */}
-                            <span
-                              className={`text-[10px] px-2 py-0.5 rounded font-semibold ${
-                                prop.status === 'disetujui'
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : prop.status === 'tayang_di_toko'
-                                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                  : prop.status === 'dalam_negosiasi'
-                                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                  : 'bg-gray-100 text-gray-700'
-                              }`}
-                            >
-                              {prop.status === 'disetujui' && 'Disetujui Admin!'}
-                              {prop.status === 'tayang_di_toko' && 'Tayang di Toko'}
-                              {prop.status === 'dalam_negosiasi' && 'Diskusi / Negosiasi'}
-                              {prop.status === 'menunggu_review' && 'Menunggu Review'}
-                            </span>
-                          </div>
-
-                          <h4 className="font-serif text-xs font-bold text-[#2C221E] truncate mt-1">
-                            {prop.title}
-                          </h4>
-
-                          <div className="text-xs font-mono font-semibold text-[#8C533C] mt-0.5 tabular-nums">
-                            Usulan: {formatIDR(prop.proposedPrice)}
-                          </div>
-                        </div>
-                      </div>
-
-                      <p className="text-[11px] text-[#61574F] mt-2 line-clamp-2 leading-relaxed">
-                        {prop.initialDescription}
-                      </p>
-
-                      {/* Unlock Action if Approved: Input Details & Publish */}
-                      {prop.status === 'disetujui' && (
-                        <div className="mt-3 pt-2.5 border-t border-[#F2ECE3] flex items-center justify-between">
-                          <span className="text-[10px] text-emerald-700 font-medium">
-                            ✓ Kesepakatan tercapai.
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenPublishModal(prop);
-                            }}
-                            className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-[11px] font-semibold flex items-center gap-1 shadow-xs"
-                          >
-                            <Upload className="w-3 h-3" />
-                            <span>Input Rincian & Terbitkan</span>
-                          </button>
-                        </div>
-                      )}
-
-                      {prop.status === 'tayang_di_toko' && (
-                        <div className="mt-2 text-[10px] text-blue-700 font-medium flex items-center gap-1">
-                          <Check className="w-3 h-3" />
-                          <span>Kriya ini telah aktif tayang dan dapat dibeli customer di katalog toko.</span>
-                        </div>
-                      )}
+                {artisanProposals.length === 0 ? (
+                  <div className="p-8 text-center bg-white rounded-xl border border-[#E8DFD5] space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-[#FAF7F2] text-[#8C533C] flex items-center justify-center mx-auto border border-[#E8DFD5]">
+                      <Hammer className="w-6 h-6" />
                     </div>
-                  );
-                })}
+                    <div>
+                      <h4 className="font-serif text-sm font-bold text-[#2C221E]">
+                        Belum Ada Penawaran Kriya
+                      </h4>
+                      <p className="text-xs text-[#7A7067] mt-1 max-w-sm mx-auto leading-relaxed">
+                        Bengkel {artisan?.workshopName || 'Anda'} belum memiliki usulan penawaran kriya. Klik tombol di bawah untuk mengajukan purwarupa karya baru ke kurator.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatingProposal(true)}
+                      className="px-4 py-2 bg-[#8C533C] hover:bg-[#73432F] text-white text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>+ Tawarkan Kriya Baru</span>
+                    </button>
+                  </div>
+                ) : (
+                  artisanProposals.map((prop) => {
+                    const isSelected = prop.id === (activeProposal?.id || selectedProposalId);
+
+                    return (
+                      <div
+                        key={prop.id}
+                        onClick={() => setSelectedProposalId(prop.id)}
+                        className={`p-4 bg-white rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-[#8C533C] shadow-sm bg-[#FDFBF9] ring-1 ring-[#8C533C]'
+                            : 'border-[#E8DFD5] hover:border-[#D5C6B7]'
+                        }`}
+                      >
+                        <div className="flex gap-3">
+                          <div className="relative shrink-0">
+                            <img
+                              src={prop.sampleImage}
+                              alt={prop.title}
+                              className="w-16 h-16 rounded-lg object-cover border border-[#E8DFD5]"
+                            />
+                            {prop.sampleImages && prop.sampleImages.length > 1 && (
+                              <span className="absolute bottom-1 right-1 bg-black/75 text-white text-[9px] font-bold px-1 py-0.5 rounded flex items-center gap-0.5">
+                                <ImageIcon className="w-2.5 h-2.5" />
+                                <span>{prop.sampleImages.length}</span>
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[10px] uppercase font-bold text-[#8C533C] tracking-wider">
+                                {prop.categoryLabel}
+                              </span>
+                              {/* Status badge */}
+                              <span
+                                className={`text-[10px] px-2 py-0.5 rounded font-semibold ${
+                                  prop.status === 'disetujui'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : prop.status === 'tayang_di_toko'
+                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                    : prop.status === 'dalam_negosiasi'
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                    : 'bg-gray-100 text-gray-700'
+                                }`}
+                              >
+                                {prop.status === 'disetujui' && 'Disetujui Admin!'}
+                                {prop.status === 'tayang_di_toko' && 'Tayang di Toko'}
+                                {prop.status === 'dalam_negosiasi' && 'Diskusi / Negosiasi'}
+                                {prop.status === 'menunggu_review' && 'Menunggu Review'}
+                              </span>
+                            </div>
+
+                            <h4 className="font-serif text-xs font-bold text-[#2C221E] truncate mt-1">
+                              {prop.title}
+                            </h4>
+
+                            <div className="text-xs font-mono font-semibold text-[#8C533C] mt-0.5 tabular-nums">
+                              Usulan: {formatIDR(prop.proposedPrice)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-[11px] text-[#61574F] mt-2 line-clamp-2 leading-relaxed">
+                          {prop.initialDescription}
+                        </p>
+
+                        {/* Unlock Action if Approved: Input Details & Publish */}
+                        {prop.status === 'disetujui' && (
+                          <div className="mt-3 pt-2.5 border-t border-[#F2ECE3] flex items-center justify-between">
+                            <span className="text-[10px] text-emerald-700 font-medium">
+                              ✓ Kesepakatan tercapai.
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenPublishModal(prop);
+                              }}
+                              className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-[11px] font-semibold flex items-center gap-1 shadow-xs cursor-pointer"
+                            >
+                              <Upload className="w-3 h-3" />
+                              <span>Input Rincian & Terbitkan</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {prop.status === 'tayang_di_toko' && (
+                          <div className="mt-2 text-[10px] text-blue-700 font-medium flex items-center gap-1">
+                            <Check className="w-3 h-3" />
+                            <span>Kriya ini telah aktif tayang dan dapat dibeli customer di katalog toko.</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
               </div>
 
               {/* Right Column: Chat Room Tied to This Proposal */}
@@ -2059,7 +2109,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
                       <button
                         type="submit"
                         disabled={!chatInput.trim()}
-                        className="px-4 py-2 bg-[#8C533C] hover:bg-[#73432F] disabled:opacity-40 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all shadow-xs"
+                        className="px-4 py-2 bg-[#8C533C] hover:bg-[#73432F] disabled:opacity-40 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
                       >
                         <Send className="w-3.5 h-3.5" />
                         <span>Kirim</span>
@@ -2067,8 +2117,26 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
                     </form>
                   </>
                 ) : (
-                  <div className="p-8 text-center text-xs text-[#7A7067]">
-                    Pilih salah satu penawaran kriya di sebelah kiri untuk membuka ruang chat.
+                  <div className="p-8 sm:p-12 text-center text-xs text-[#7A7067] flex flex-col items-center justify-center min-h-[400px] space-y-3 bg-white">
+                    <div className="w-12 h-12 rounded-full bg-[#FAF7F2] text-[#8C533C] flex items-center justify-center border border-[#E8DFD5]">
+                      <MessageSquare className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="font-serif text-sm font-bold text-[#2C221E]">
+                        Ruang Negosiasi & Kurasi Produk
+                      </div>
+                      <p className="text-xs text-[#7A7067] max-w-xs mt-1 leading-relaxed">
+                        Belum ada penawaran karya aktif dari bengkel Anda. Ajukan usulan kriya baru untuk berdiskusi harga dan spesifikasi bersama tim kurator admin.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatingProposal(true)}
+                      className="px-4 py-2 bg-[#8C533C] hover:bg-[#73432F] text-white text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors mt-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>+ Ajukan Karya Sekarang</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -2267,36 +2335,36 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
               <div className="flex items-center gap-1.5 flex-wrap">
                 <button
                   type="button"
-                  onClick={() => setStockFilterMode('all')}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                    stockFilterMode === 'all'
-                      ? 'bg-[#2C221E] text-white'
-                      : 'bg-[#FAF7F2] text-[#574E47] hover:bg-[#F2EAE1]'
-                  }`}
-                >
-                  Semua Kriya di Toko ({catalogProducts.length})
-                </button>
-                <button
-                  type="button"
                   onClick={() => setStockFilterMode('mine')}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                     stockFilterMode === 'mine'
-                      ? 'bg-[#2C221E] text-white'
+                      ? 'bg-[#2C221E] text-white shadow-xs'
                       : 'bg-[#FAF7F2] text-[#574E47] hover:bg-[#F2EAE1]'
                   }`}
                 >
-                  Kriya Usaha Saya ({catalogProducts.filter(checkIsMine).length})
+                  Kriya Bengkel Saya ({myStockProducts.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setStockFilterMode('out_of_stock')}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                     stockFilterMode === 'out_of_stock'
-                      ? 'bg-red-700 text-white'
+                      ? 'bg-red-700 text-white shadow-xs'
                       : 'bg-red-50 text-red-700 hover:bg-red-100'
                   }`}
                 >
-                  Stok 0 / Foto Buram ({catalogProducts.filter((p) => p.stock === 0).length})
+                  Stok 0 / Habis ({myOutOfStockProducts.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStockFilterMode('all')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    stockFilterMode === 'all'
+                      ? 'bg-[#2C221E] text-white shadow-xs'
+                      : 'bg-[#FAF7F2] text-[#574E47] hover:bg-[#F2EAE1]'
+                  }`}
+                >
+                  Semua Kriya di Toko (Referensi) ({catalogProducts.length})
                 </button>
               </div>
 
@@ -2313,7 +2381,40 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
 
             {/* List of Products for Stock Maintenance */}
             <div className="space-y-4">
-              {filteredStockProducts.map((p) => {
+              {filteredStockProducts.length === 0 ? (
+                <div className="p-10 text-center bg-white rounded-2xl border border-[#E8DFD5] space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-[#FAF7F2] text-[#8C533C] flex items-center justify-center mx-auto border border-[#E8DFD5]">
+                    <Layers className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-serif text-sm font-bold text-[#2C221E]">
+                      {stockFilterMode === 'mine'
+                        ? 'Belum Ada Kriya dari Bengkel Anda di Toko'
+                        : stockFilterMode === 'out_of_stock'
+                        ? 'Tidak Ada Kriya yang Habis (Stok 0)'
+                        : 'Tidak Ditemukan Kriya Sesuai Pencarian'}
+                    </h4>
+                    <p className="text-xs text-[#7A7067] mt-1 max-w-md mx-auto leading-relaxed">
+                      {stockFilterMode === 'mine'
+                        ? `Karya kriya milik ${artisan?.workshopName || 'bengkel Anda'} yang telah disetujui kurator admin dan diterbitkan akan otomatis tampil di sini agar Anda dapat mengatur jumlah stoknya.`
+                        : stockFilterMode === 'out_of_stock'
+                        ? 'Semua produk kriya bengkel Anda saat ini memiliki stok dan tayang aktif di etalase toko.'
+                        : 'Silakan periksa kembali kata kunci pencarian Anda atau beralih filter.'}
+                    </p>
+                  </div>
+                  {stockFilterMode === 'mine' && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('proposals')}
+                      className="px-4 py-2 bg-[#8C533C] hover:bg-[#73432F] text-white text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+                    >
+                      <Hammer className="w-4 h-4" />
+                      <span>Ajukan Penawaran Kriya Baru</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                filteredStockProducts.map((p) => {
                 const isOutOfStock = p.stock <= 0;
                 const parsed = parseProductCode(p.productCode);
                 const currentInputValue = customStockInputs[p.id] ?? String(p.stock);
@@ -2485,7 +2586,8 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
                     </div>
                   </div>
                 );
-              })}
+              })
+            )}
             </div>
           </div>
         )}
