@@ -318,6 +318,19 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
     ? proposalChats.filter((c) => c.proposalId === activeProposal.id)
     : [];
 
+  // Sync selectedProposalId with activeProposal to guarantee messages are always routed to current proposal
+  React.useEffect(() => {
+    if (activeProposal && selectedProposalId !== activeProposal.id) {
+      setSelectedProposalId(activeProposal.id);
+    }
+  }, [activeProposal, selectedProposalId]);
+
+  // Auto scroll chat to bottom when active chats change
+  const chatMessagesEndRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [activeChats.length]);
+
   // Auth Submit Handlers
   const handleArtisanLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -530,8 +543,9 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
 
   const handleSendChat = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim() || !selectedProposalId) return;
-    onSendProposalChat(selectedProposalId, chatInput.trim());
+    const targetProposalId = selectedProposalId || activeProposal?.id;
+    if (!chatInput.trim() || !targetProposalId) return;
+    onSendProposalChat(targetProposalId, chatInput.trim());
     setChatInput('');
   };
 
@@ -2092,6 +2106,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
                           );
                         })
                       )}
+                      <div ref={chatMessagesEndRef} />
                     </div>
 
                     {/* Chat Input */}
@@ -2109,7 +2124,7 @@ export const ArtisanPortal: React.FC<ArtisanPortalProps> = ({
                       <button
                         type="submit"
                         disabled={!chatInput.trim()}
-                        className="px-4 py-2 bg-[#8C533C] hover:bg-[#73432F] disabled:opacity-40 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                        className="px-4 py-2 bg-[#8C533C] hover:bg-[#73432F] disabled:opacity-40 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer touch-manipulation active:scale-95"
                       >
                         <Send className="w-3.5 h-3.5" />
                         <span>Kirim</span>
