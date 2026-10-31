@@ -13,8 +13,15 @@ import {
   X,
   ChevronDown,
   ChevronRight,
-  UserCheck
+  UserCheck,
+  Menu,
+  Check,
+  Sparkles,
+  ShieldCheck,
+  BookOpen,
+  Compass
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface NavbarProps {
   cartCount: number;
@@ -52,43 +59,54 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogoutArtisan,
   onLogoutCustomer,
 }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
+  const { language, setLanguage, t } = useLanguage();
 
-  // Close dropdown on outside click or escape key
+  // Distinct Sub-menus
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isStudioMenuOpen, setIsStudioMenuOpen] = useState(false); // Kotak Merah Sub-menu
+  const [isNavMenuOpen, setIsNavMenuOpen] = useState(false); // Kotak Biru 3-Lines Sub-menu
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false); // Language Selector
+
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const studioMenuRef = useRef<HTMLDivElement>(null);
+  const langMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close menus on outside click or escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
         setIsUserMenuOpen(false);
+      }
+      if (studioMenuRef.current && !studioMenuRef.current.contains(target)) {
+        setIsStudioMenuOpen(false);
+      }
+      if (langMenuRef.current && !langMenuRef.current.contains(target)) {
+        setIsLangMenuOpen(false);
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsUserMenuOpen(false);
+        setIsStudioMenuOpen(false);
+        setIsNavMenuOpen(false);
+        setIsLangMenuOpen(false);
       }
     };
-    if (isUserMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isUserMenuOpen]);
-
-  const handleMobileAction = (action: () => void) => {
-    setIsMobileMenuOpen(false);
-    action();
-  };
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 w-full bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#E8DFD5] transition-all max-w-full overflow-visible">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between gap-2 sm:gap-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between gap-2 sm:gap-4">
         {/* Zone 1: Brand Logo */}
-        <a 
-          href="#" 
+        <a
+          href="#"
           className="group flex items-center gap-2.5 whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8C533C]"
           title="dekorasiku - Studio Kerajinan & Dekorasi"
         >
@@ -105,46 +123,272 @@ export const Navbar: React.FC<NavbarProps> = ({
             href="#koleksi"
             className="hover:text-[#8C533C] transition-colors whitespace-nowrap shrink-0 hover:underline underline-offset-8"
           >
-            Katalog Kriya
+            {t('nav.catalog')}
           </a>
           <a
             href="#galeri"
             className="hover:text-[#8C533C] transition-colors whitespace-nowrap shrink-0 hover:underline underline-offset-8"
           >
-            Galeri Estetik
+            {t('nav.gallery')}
           </a>
           <a
             href="#filosofi"
             className="hover:text-[#8C533C] transition-colors whitespace-nowrap shrink-0 hover:underline underline-offset-8"
           >
-            Kisah Pengrajin
+            {t('nav.stories')}
           </a>
           <a
             href="#garansi"
             className="hover:text-[#8C533C] transition-colors whitespace-nowrap shrink-0 hover:underline underline-offset-8"
           >
-            Garansi & Etika
+            {t('nav.ethics')}
           </a>
         </nav>
 
-        {/* Zone 3 Desktop: Action Area */}
-        <div className="hidden md:flex items-center gap-2 shrink-0">
-          {/* USER MENU WITH SUB-MENUS (Edit Profile, My Favorite, My Orders, Login/Logout) */}
+        {/* Zone 3: Actions & Sub-menus Area */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* A. LANGUAGE PICKER BUTTON (Indonesia / English) */}
+          <div className="relative" ref={langMenuRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsLangMenuOpen(!isLangMenuOpen);
+                setIsUserMenuOpen(false);
+                setIsStudioMenuOpen(false);
+              }}
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl border border-[#E8DFD5] bg-white hover:bg-[#F2EAE1] text-xs font-semibold text-[#2C221E] transition-all cursor-pointer shadow-2xs"
+              title={language === 'id' ? 'Ganti Bahasa (Indonesia / English)' : 'Switch Language (Indonesian / English)'}
+              aria-label="Language Selector"
+            >
+              {language === 'id' ? (
+                <>
+                  <span className="text-sm leading-none" role="img" aria-label="Bendera Indonesia">
+                    🇮🇩
+                  </span>
+                  <span className="font-bold text-[11px] text-[#2C221E]">ID</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-sm leading-none" role="img" aria-label="English UK Flag">
+                    🇬🇧
+                  </span>
+                  <span className="font-bold text-[11px] text-[#2C221E]">EN</span>
+                </>
+              )}
+              <ChevronDown className="w-3 h-3 text-[#7A7067]" />
+            </button>
+
+            {/* Language Dropdown */}
+            {isLangMenuOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-[#E8DFD5] py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="px-3 py-1.5 border-b border-[#F2ECE3] text-[10px] font-bold text-[#8C533C] uppercase tracking-wider">
+                  {t('lang.title')}
+                </div>
+                <div className="py-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLanguage('id');
+                      setIsLangMenuOpen(false);
+                    }}
+                    className={`w-full px-3.5 py-2 text-left flex items-center justify-between text-xs transition-colors cursor-pointer ${
+                      language === 'id'
+                        ? 'bg-[#FAF7F2] text-[#8C533C] font-bold'
+                        : 'text-[#2C221E] hover:bg-[#FAF7F2]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-base leading-none">🇮🇩</span>
+                      <span>Bahasa Indonesia</span>
+                    </div>
+                    {language === 'id' && <Check className="w-3.5 h-3.5 text-[#8C533C]" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLanguage('en');
+                      setIsLangMenuOpen(false);
+                    }}
+                    className={`w-full px-3.5 py-2 text-left flex items-center justify-between text-xs transition-colors cursor-pointer ${
+                      language === 'en'
+                        ? 'bg-[#FAF7F2] text-[#8C533C] font-bold'
+                        : 'text-[#2C221E] hover:bg-[#FAF7F2]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-base leading-none">🇬🇧</span>
+                      <span>English</span>
+                    </div>
+                    {language === 'en' && <Check className="w-3.5 h-3.5 text-[#8C533C]" />}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* B. SUB-MENU KOTAK MERAH (Studio, Mitra & Admin) - DEDICATED MENU */}
+          <div className="relative" ref={studioMenuRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsStudioMenuOpen(!isStudioMenuOpen);
+                setIsUserMenuOpen(false);
+                setIsLangMenuOpen(false);
+              }}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-2xs ${
+                isStudioMenuOpen
+                  ? 'bg-[#8C533C] text-white border-[#8C533C] ring-2 ring-[#8C533C]/20'
+                  : 'bg-[#F5EDE4] hover:bg-[#EBDDCF] border-[#DFCBB7] text-[#8C533C]'
+              }`}
+              title={language === 'id' ? 'Sub-menu: Portal Pengrajin, Panel Admin, Chat Studio' : 'Sub-menu: Artisan Portal, Admin Panel, Studio Chat'}
+              aria-label="Studio and Partners Sub-menu"
+            >
+              <Hammer className="w-3.5 h-3.5" />
+              <span className="hidden md:inline font-bold">{t('red.title')}</span>
+              <ChevronDown
+                className={`w-3 h-3 transition-transform duration-200 ${
+                  isStudioMenuOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {/* Kotak Merah Sub-menu Dropdown */}
+            {isStudioMenuOpen && (
+              <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-[#E8DFD5] p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-2">
+                <div className="px-2 py-1 border-b border-[#F2ECE3] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C533C]">
+                      {t('red.title')}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-[#7A7067]">
+                    {language === 'id' ? 'Ruang Khusus Mitra' : 'Partner Workspace'}
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {/* 1. Portal Pengrajin */}
+                  {artisan ? (
+                    <div className="p-2.5 bg-[#FAF7F2] rounded-xl border border-[#DFCBB7] flex items-center justify-between">
+                      <button
+                        onClick={() => {
+                          setIsStudioMenuOpen(false);
+                          onOpenArtisanPortal();
+                        }}
+                        className="flex items-center gap-2.5 text-left flex-1 cursor-pointer"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-[#8C533C] text-white flex items-center justify-center shrink-0">
+                          <Hammer className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-[#7A7067] font-semibold">
+                            {language === 'id' ? 'Mitra Login Aktif' : 'Active Partner'}
+                          </div>
+                          <div className="text-xs font-bold text-[#2C221E]">{artisan.name}</div>
+                        </div>
+                      </button>
+                      {onLogoutArtisan && (
+                        <button
+                          onClick={() => {
+                            setIsStudioMenuOpen(false);
+                            onLogoutArtisan();
+                          }}
+                          className="px-2 py-1 text-xs text-[#8C533C] hover:text-red-600 hover:bg-white rounded-lg flex items-center gap-1 font-semibold transition-colors cursor-pointer"
+                          title={language === 'id' ? 'Keluar Akun Pengrajin' : 'Logout Artisan'}
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>{language === 'id' ? 'Keluar' : 'Logout'}</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsStudioMenuOpen(false);
+                        onOpenArtisanPortal();
+                      }}
+                      className="w-full p-2.5 bg-[#FAF7F2] hover:bg-[#F2EAE1] rounded-xl border border-[#DFCBB7] flex items-center justify-between text-left transition-colors cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-[#8C533C] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          <Hammer className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-[#2C221E]">{t('red.artisan_portal')}</div>
+                          <div className="text-[10px] text-[#7A7067]">{t('red.artisan_desc')}</div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-[#8C533C] group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  )}
+
+                  {/* 2. Panel Admin */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsStudioMenuOpen(false);
+                      onOpenAdmin();
+                    }}
+                    className="w-full p-2.5 bg-white hover:bg-[#FAF7F2] rounded-xl border border-[#E8DFD5] flex items-center justify-between text-left transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-[#2C221E] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <LayoutDashboard className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-[#2C221E]">{t('red.admin_panel')}</div>
+                        <div className="text-[10px] text-[#7A7067]">{t('red.admin_desc')}</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-[#7A7067] group-hover:text-[#2C221E] group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+
+                  {/* 3. Chat Studio */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsStudioMenuOpen(false);
+                      onOpenChat();
+                    }}
+                    className="w-full p-2.5 bg-white hover:bg-[#FAF7F2] rounded-xl border border-[#E8DFD5] flex items-center justify-between text-left transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-[#8C533C]/10 text-[#8C533C] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <MessageCircle className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-[#2C221E]">{t('red.chat_studio')}</div>
+                        <div className="text-[10px] text-[#7A7067]">{t('red.chat_desc')}</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-[#7A7067] group-hover:text-[#8C533C] group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* C. USER ACCOUNT MENU [H] (Clean: Edit Profile, My Favorite, My Orders, Logout) */}
           <div className="relative" ref={userMenuRef}>
             <button
               type="button"
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+              onClick={() => {
+                setIsUserMenuOpen(!isUserMenuOpen);
+                setIsStudioMenuOpen(false);
+                setIsLangMenuOpen(false);
+              }}
+              className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-2xs ${
                 isUserMenuOpen
-                  ? 'bg-white border-[#8C533C] text-[#8C533C] ring-2 ring-[#8C533C]/20 shadow-xs'
+                  ? 'bg-white border-[#8C533C] text-[#8C533C] ring-2 ring-[#8C533C]/20'
                   : 'bg-white hover:bg-[#F2EAE1] border-[#E8DFD5] text-[#2C221E]'
               }`}
-              aria-expanded={isUserMenuOpen}
-              aria-haspopup="true"
-              title="Menu Pengguna: Edit Profile, My Favorite, My Orders, Login/Logout"
+              aria-label="User Account Menu"
+              title={customer ? `Akun: ${customer.name}` : 'Menu Akun Pengguna'}
             >
               {customer ? (
-                <div className="w-6 h-6 rounded-full bg-[#8C533C] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                <div className="w-6 h-6 rounded-full bg-[#8C533C] text-white flex items-center justify-center text-[11px] font-bold shrink-0">
                   {customer.name.charAt(0).toUpperCase()}
                 </div>
               ) : (
@@ -152,17 +396,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <User className="w-3.5 h-3.5" />
                 </div>
               )}
-              <span className="font-semibold max-w-[100px] truncate">
-                {customer ? customer.name.split(' ')[0] : 'Akun User'}
+              <span className="hidden sm:inline font-semibold max-w-[90px] truncate">
+                {customer ? customer.name.split(' ')[0] : (language === 'id' ? 'Akun' : 'Account')}
               </span>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-[#7A7067] transition-transform duration-200 ${
+                className={`w-3 h-3 text-[#7A7067] transition-transform duration-200 ${
                   isUserMenuOpen ? 'rotate-180 text-[#8C533C]' : ''
                 }`}
               />
             </button>
 
-            {/* Dropdown Sub-menu */}
+            {/* User Dropdown Sub-menu */}
             {isUserMenuOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-[#E8DFD5] py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                 {/* User Header Info */}
@@ -174,8 +418,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
                   ) : (
                     <div>
-                      <div className="text-xs font-bold text-[#2C221E]">Selamat Datang!</div>
-                      <div className="text-[11px] text-[#7A7067]">Silakan masuk untuk akses akun penuh</div>
+                      <div className="text-xs font-bold text-[#2C221E]">{t('user.welcome')}</div>
+                      <div className="text-[11px] text-[#7A7067]">{t('user.welcome_sub')}</div>
                     </div>
                   )}
                 </div>
@@ -198,9 +442,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <UserCheck className="w-4 h-4" />
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-[#2C221E]">Edit Profile</div>
-                      <div className="text-[10px] text-[#7A7067]">Kelola data diri & alamat kirim</div>
+                      <div className="font-semibold text-[#2C221E]">{t('user.profile')}</div>
+                      <div className="text-[10px] text-[#7A7067]">{t('user.profile_desc')}</div>
                     </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-[#A89F95]" />
                   </button>
 
                   {/* 2. My Favorite */}
@@ -217,8 +462,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
                     <div className="flex-1 flex items-center justify-between">
                       <div>
-                        <div className="font-semibold text-[#2C221E]">My Favorite</div>
-                        <div className="text-[10px] text-[#7A7067]">Kriya tersimpan</div>
+                        <div className="font-semibold text-[#2C221E]">{t('user.favorites')}</div>
+                        <div className="text-[10px] text-[#7A7067]">{t('user.favorites_desc')}</div>
                       </div>
                       {wishlistCount > 0 && (
                         <span className="bg-[#8C533C] text-white text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums">
@@ -226,6 +471,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         </span>
                       )}
                     </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-[#A89F95]" />
                   </button>
 
                   {/* 3. My Orders */}
@@ -242,8 +488,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
                     <div className="flex-1 flex items-center justify-between">
                       <div>
-                        <div className="font-semibold text-[#2C221E]">My Orders</div>
-                        <div className="text-[10px] text-[#7A7067]">Pantau status & lacak pesanan</div>
+                        <div className="font-semibold text-[#2C221E]">{t('user.orders')}</div>
+                        <div className="text-[10px] text-[#7A7067]">{t('user.orders_desc')}</div>
                       </div>
                       {customerOrderCount > 0 && (
                         <span className="bg-[#8C533C] text-white text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums">
@@ -251,25 +497,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         </span>
                       )}
                     </div>
-                  </button>
-
-                  {/* 4. Portal Pengrajin (Konfirmasi Pesanan & Kelola Stok) */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsUserMenuOpen(false);
-                      onOpenArtisanPortal();
-                    }}
-                    className="w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-[#FAF7F2] transition-colors text-xs text-[#2C221E] group cursor-pointer"
-                  >
-                    <div className="p-1.5 rounded-lg bg-[#FAF7F2] text-[#8C533C] group-hover:bg-[#8C533C] group-hover:text-white transition-colors">
-                      <Hammer className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-[#8C533C]">Portal Pengrajin</div>
-                      <div className="text-[10px] text-[#7A7067]">Konfirmasi pesanan masuk & stok kriya</div>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-[#A89F95] group-hover:text-[#8C533C] group-hover:translate-x-0.5 transition-all" />
+                    <ChevronRight className="w-3.5 h-3.5 text-[#A89F95]" />
                   </button>
 
                   {/* Divider */}
@@ -289,8 +517,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <LogOut className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="font-semibold">Logout</div>
-                        <div className="text-[10px] text-red-500/80">Keluar dari akun Anda</div>
+                        <div className="font-semibold">{t('user.logout')}</div>
+                        <div className="text-[10px] text-red-500/80">{t('user.logout_desc')}</div>
                       </div>
                     </button>
                   ) : (
@@ -306,8 +534,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <LogIn className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="font-semibold">Login / Masuk</div>
-                        <div className="text-[10px] text-emerald-600/80">Masuk atau daftar akun kriya</div>
+                        <div className="font-semibold">{t('user.login')}</div>
+                        <div className="text-[10px] text-emerald-600/80">{t('user.login_desc')}</div>
                       </div>
                     </button>
                   )}
@@ -316,318 +544,146 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          {/* Chat Studio Button */}
-          <button
-            onClick={onOpenChat}
-            className="px-2.5 py-1.5 text-xs font-semibold text-[#2C221E] hover:text-[#8C533C] bg-white hover:bg-[#F2EAE1] rounded-lg border border-[#E8DFD5] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0"
-            title="Buka Ruang Obrolan dengan Tim Studio"
-          >
-            <MessageCircle className="w-3.5 h-3.5 text-[#8C533C]" />
-            <span className="hidden xl:inline">Chat</span>
-          </button>
-
-          {/* Admin Switcher Button */}
-          <button
-            onClick={onOpenAdmin}
-            className="px-2.5 py-1.5 text-xs font-semibold text-[#8C533C] hover:text-[#2C221E] bg-[#F2EAE1] hover:bg-[#E8DFD5] rounded-lg border border-[#DECBB7] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0"
-            title="Masuk ke Halaman Admin Studio"
-          >
-            <LayoutDashboard className="w-3.5 h-3.5 text-[#8C533C]" />
-            <span className="hidden xl:inline">Admin</span>
-          </button>
-
-          {/* Artisan Portal Switcher Button */}
-          {artisan ? (
-            <div className="flex items-center bg-[#F5EDE4] rounded-lg border border-[#DFCBB7] p-0.5 shadow-2xs">
-              <button
-                onClick={onOpenArtisanPortal}
-                className="px-2.5 py-1 text-xs font-semibold text-[#8C533C] hover:text-[#2C221E] transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-                title={`Buka Ruang Kerja Pengrajin (${artisan.name})`}
-              >
-                <Hammer className="w-3.5 h-3.5 text-[#8C533C]" />
-                <span className="font-bold">
-                  {artisan.name.split(' ')[0]}
-                </span>
-              </button>
-              {onLogoutArtisan && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onLogoutArtisan();
-                  }}
-                  className="p-1 text-[#8C533C] hover:text-red-600 hover:bg-white/80 rounded transition-colors"
-                  title="Keluar / Ganti Akun Pengrajin"
-                >
-                  <LogOut className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          ) : (
-            <button
-              onClick={onOpenArtisanPortal}
-              className="px-2.5 py-1.5 text-xs font-semibold text-[#8C533C] hover:text-[#2C221E] bg-[#F5EDE4] hover:bg-[#EBDDCF] rounded-lg border border-[#DFCBB7] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs cursor-pointer"
-              title="Masuk atau Daftar Akun Pengrajin"
-            >
-              <Hammer className="w-3.5 h-3.5 text-[#8C533C]" />
-              <span className="font-bold hidden xl:inline">Pengrajin</span>
-            </button>
-          )}
-
-          {/* Cart Primary CTA */}
+          {/* D. CART CTA BUTTON */}
           <button
             onClick={onOpenCart}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#FAF7F2] bg-[#2C221E] hover:bg-[#43352F] active:scale-[0.98] transition-all rounded-lg shadow-sm whitespace-nowrap shrink-0 cursor-pointer"
-            aria-label={`Buka Keranjang (${cartCount} barang)`}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-[#FAF7F2] bg-[#2C221E] hover:bg-[#43352F] active:scale-[0.98] transition-all rounded-xl shadow-xs whitespace-nowrap shrink-0 cursor-pointer"
+            aria-label={`${t('nav.cart')} (${cartCount})`}
           >
             <ShoppingBag className="w-4 h-4" />
-            <span className="hidden lg:inline">Keranjang</span>
-            <span className="inline-flex items-center justify-center bg-[#8C533C] text-white text-[11px] font-bold px-1.5 py-0.2 rounded min-w-[20px] tabular-nums">
+            <span className="hidden sm:inline">{t('nav.cart')}</span>
+            <span className="inline-flex items-center justify-center bg-[#8C533C] text-white text-[10px] sm:text-[11px] font-bold px-1.5 py-0.2 rounded min-w-[18px] tabular-nums">
               {cartCount}
             </span>
           </button>
-        </div>
 
-        {/* Zone 3 Mobile: Compact View */}
-        <div className="flex md:hidden items-center gap-1.5 shrink-0">
-          {/* Mobile User Trigger */}
+          {/* E. SUB-MENU KOTAK BIRU DENGAN ICON 3 GARIS (☰ HAMBURGER MENU) */}
           <button
             type="button"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-1.5 text-[#2C221E] hover:text-[#8C533C] rounded-lg hover:bg-[#F2EAE1]"
-            title="Menu Akun User"
+            onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
+            className={`p-2 rounded-xl border text-[#2C221E] transition-all cursor-pointer shadow-2xs ${
+              isNavMenuOpen
+                ? 'bg-[#8C533C] text-white border-[#8C533C]'
+                : 'bg-white hover:bg-[#F2EAE1] border-[#E8DFD5] hover:text-[#8C533C]'
+            }`}
+            title={language === 'id' ? 'Navigasi Menu (Icon 3 Garis)' : 'Navigation Menu (3 Bars)'}
+            aria-label="Navigation Menu with 3 lines"
           >
-            {customer ? (
-              <div className="w-6 h-6 rounded-full bg-[#8C533C] text-white flex items-center justify-center text-[10px] font-bold">
-                {customer.name.charAt(0).toUpperCase()}
-              </div>
-            ) : (
-              <User className="w-5 h-5 text-[#8C533C]" />
-            )}
+            {isNavMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
-
-          {/* Mobile Cart Button */}
-          <button
-            onClick={onOpenCart}
-            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-[#FAF7F2] bg-[#2C221E] active:scale-[0.98] rounded-lg shadow-xs"
-            aria-label={`Keranjang (${cartCount})`}
-          >
-            <ShoppingBag className="w-4 h-4" />
-            <span className="bg-[#8C533C] text-white text-[10px] font-bold px-1.5 py-0.2 rounded tabular-nums">
-              {cartCount}
-            </span>
-          </button>
-
-
         </div>
       </div>
 
-      {/* Mobile Slide-down Menu Drawer */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-[#E8DFD5] bg-[#FAF7F2] px-4 py-4 space-y-4 shadow-lg max-h-[85vh] overflow-y-auto">
-          {/* USER SUB-MENU GROUP (Edit Profile, My Favorite, My Orders, Login/Logout) */}
-          <div className="bg-white rounded-2xl border border-[#E8DFD5] p-3 shadow-xs space-y-2">
-            <div className="flex items-center justify-between pb-2 border-b border-[#F2ECE3]">
+      {/* MODAL / DRAWER SUB-MENU KOTAK BIRU (Opened by the 3-line hamburger menu icon) */}
+      {isNavMenuOpen && (
+        <div className="border-t border-[#E8DFD5] bg-[#FAF7F2] px-4 py-4 shadow-xl animate-in slide-in-from-top-3 duration-200">
+          <div className="max-w-2xl mx-auto space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E8DFD5]">
               <div className="flex items-center gap-2">
-                {customer ? (
-                  <div className="w-7 h-7 rounded-full bg-[#8C533C] text-white flex items-center justify-center text-xs font-bold">
-                    {customer.name.charAt(0).toUpperCase()}
-                  </div>
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-[#F2EAE1] text-[#8C533C] flex items-center justify-center">
-                    <User className="w-4 h-4" />
-                  </div>
-                )}
-                <div>
-                  <div className="text-xs font-bold text-[#2C221E]">
-                    {customer ? customer.name : 'Menu Akun Pengguna'}
-                  </div>
-                  <div className="text-[10px] text-[#7A7067]">
-                    {customer ? customer.email : 'Akses profil & pesanan'}
-                  </div>
-                </div>
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                <span className="text-xs font-bold uppercase tracking-wider text-[#2C221E]">
+                  {t('blue.title')}
+                </span>
               </div>
+              <button
+                type="button"
+                onClick={() => setIsNavMenuOpen(false)}
+                className="text-xs text-[#7A7067] hover:text-[#2C221E] p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-1">
-              {/* 1. Edit Profile */}
-              <button
-                onClick={() => handleMobileAction(customer ? onOpenProfile : onOpenAuth)}
-                className="w-full p-2.5 rounded-xl hover:bg-[#FAF7F2] flex items-center justify-between text-left transition-colors"
+            {/* Kotak Biru 4 Main Navigation Links */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* 1. Katalog Kriya Lengkap */}
+              <a
+                href="#koleksi"
+                onClick={() => setIsNavMenuOpen(false)}
+                className="p-3 bg-white hover:bg-[#FAF7F2] rounded-xl border border-[#E8DFD5] hover:border-[#8C533C] flex items-center justify-between text-left transition-all group shadow-2xs"
               >
-                <div className="flex items-center gap-2.5">
-                  <UserCheck className="w-4 h-4 text-[#8C533C]" />
-                  <span className="text-xs font-semibold text-[#2C221E]">Edit Profile</span>
-                </div>
-                <ChevronRight className="w-3.5 h-3.5 text-[#7A7067]" />
-              </button>
-
-              {/* 2. My Favorite */}
-              <button
-                onClick={() => handleMobileAction(onOpenWishlist)}
-                className="w-full p-2.5 rounded-xl hover:bg-[#FAF7F2] flex items-center justify-between text-left transition-colors"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Heart className="w-4 h-4 text-[#8C533C]" />
-                  <span className="text-xs font-semibold text-[#2C221E]">My Favorite</span>
-                </div>
-                {wishlistCount > 0 ? (
-                  <span className="bg-[#8C533C] text-white text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums">
-                    {wishlistCount}
-                  </span>
-                ) : (
-                  <ChevronRight className="w-3.5 h-3.5 text-[#7A7067]" />
-                )}
-              </button>
-
-              {/* 3. My Orders */}
-              <button
-                onClick={() => handleMobileAction(onOpenOrders)}
-                className="w-full p-2.5 rounded-xl hover:bg-[#FAF7F2] flex items-center justify-between text-left transition-colors"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Package className="w-4 h-4 text-[#8C533C]" />
-                  <span className="text-xs font-semibold text-[#2C221E]">My Orders</span>
-                </div>
-                {customerOrderCount > 0 ? (
-                  <span className="bg-[#8C533C] text-white text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums">
-                    {customerOrderCount}
-                  </span>
-                ) : (
-                  <ChevronRight className="w-3.5 h-3.5 text-[#7A7067]" />
-                )}
-              </button>
-
-              {/* 4. Login / Logout */}
-              {customer ? (
-                <button
-                  onClick={() => {
-                    if (onLogoutCustomer) onLogoutCustomer();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full p-2.5 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-2.5 text-left transition-colors font-semibold text-xs"
-                >
-                  <LogOut className="w-4 h-4 text-red-600" />
-                  <span>Logout</span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleMobileAction(onOpenAuth)}
-                  className="w-full p-2.5 rounded-xl hover:bg-emerald-50 text-emerald-700 flex items-center gap-2.5 text-left transition-colors font-semibold text-xs"
-                >
-                  <LogIn className="w-4 h-4 text-emerald-700" />
-                  <span>Login / Masuk</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Quick Action Tiles (Admin, Artisan, Chat) */}
-          <div className="grid grid-cols-2 gap-2">
-            {/* Portal Pengrajin Tile */}
-            {artisan ? (
-              <div className="col-span-2 p-3 bg-[#F5EDE4] rounded-xl border border-[#DFCBB7] flex items-center justify-between">
-                <button
-                  onClick={() => handleMobileAction(onOpenArtisanPortal)}
-                  className="flex items-center gap-2 text-left"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-[#8C533C] text-white flex items-center justify-center shrink-0">
-                    <Hammer className="w-4 h-4" />
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-blue-50 text-blue-700 group-hover:bg-[#8C533C] group-hover:text-white transition-colors">
+                    <Compass className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-[11px] text-[#7A7067] font-semibold">Ruang Kerja Pengrajin</div>
-                    <div className="text-xs font-bold text-[#2C221E]">{artisan.name}</div>
-                  </div>
-                </button>
-                {onLogoutArtisan && (
-                  <button
-                    onClick={() => {
-                      onLogoutArtisan();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="p-1.5 text-xs text-[#8C533C] hover:text-red-600 bg-white/70 rounded-lg flex items-center gap-1 font-semibold"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Keluar</span>
-                  </button>
-                )}
-              </div>
-            ) : (
-              <button
-                onClick={() => handleMobileAction(onOpenArtisanPortal)}
-                className="col-span-2 p-3 bg-[#F5EDE4] hover:bg-[#EBDDCF] rounded-xl border border-[#DFCBB7] flex items-center justify-between transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#8C533C] text-white flex items-center justify-center shrink-0">
-                    <Hammer className="w-4 h-4" />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-xs font-bold text-[#2C221E]">Portal Pengrajin</div>
-                    <div className="text-[10px] text-[#7A7067]">Masuk (Log In) atau Daftar (Sign In)</div>
+                    <div className="text-xs font-bold text-[#2C221E] group-hover:text-[#8C533C] transition-colors">
+                      {t('blue.catalog_full')}
+                    </div>
+                    <div className="text-[10px] text-[#7A7067]">
+                      {language === 'id' ? 'Eksplorasi tembikar, anyaman & kayu' : 'Explore pottery, weaving & woodcraft'}
+                    </div>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#8C533C]" />
-              </button>
-            )}
+                <ChevronRight className="w-4 h-4 text-[#A89F95] group-hover:text-[#8C533C] group-hover:translate-x-0.5 transition-transform" />
+              </a>
 
-            {/* Panel Admin Button */}
-            <button
-              onClick={() => handleMobileAction(onOpenAdmin)}
-              className="p-2.5 bg-white hover:bg-[#F2EAE1] rounded-xl border border-[#E8DFD5] flex items-center gap-2 text-left transition-colors"
-            >
-              <LayoutDashboard className="w-4 h-4 text-[#8C533C] shrink-0" />
-              <div>
-                <div className="text-xs font-bold text-[#2C221E]">Panel Admin</div>
-                <div className="text-[10px] text-[#7A7067]">Kelola Toko & Mitra</div>
-              </div>
-            </button>
+              {/* 2. Galeri Estetik & Lookbook Ruang */}
+              <a
+                href="#galeri"
+                onClick={() => setIsNavMenuOpen(false)}
+                className="p-3 bg-white hover:bg-[#FAF7F2] rounded-xl border border-[#E8DFD5] hover:border-[#8C533C] flex items-center justify-between text-left transition-all group shadow-2xs"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-amber-50 text-amber-800 group-hover:bg-[#8C533C] group-hover:text-white transition-colors">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-[#2C221E] group-hover:text-[#8C533C] transition-colors">
+                      {t('blue.gallery_full')}
+                    </div>
+                    <div className="text-[10px] text-[#7A7067]">
+                      {language === 'id' ? 'Inspirasi penataan ruang bernyawa' : 'Soulful interior styling inspiration'}
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#A89F95] group-hover:text-[#8C533C] group-hover:translate-x-0.5 transition-transform" />
+              </a>
 
-            {/* Chat Studio Button */}
-            <button
-              onClick={() => handleMobileAction(onOpenChat)}
-              className="p-2.5 bg-white hover:bg-[#F2EAE1] rounded-xl border border-[#E8DFD5] flex items-center gap-2 text-left transition-colors"
-            >
-              <MessageCircle className="w-4 h-4 text-[#8C533C] shrink-0" />
-              <div>
-                <div className="text-xs font-bold text-[#2C221E]">Chat Studio</div>
-                <div className="text-[10px] text-[#7A7067]">Tanya Tim Admin</div>
-              </div>
-            </button>
-          </div>
+              {/* 3. Kisah & Etika Pengrajin */}
+              <a
+                href="#filosofi"
+                onClick={() => setIsNavMenuOpen(false)}
+                className="p-3 bg-white hover:bg-[#FAF7F2] rounded-xl border border-[#E8DFD5] hover:border-[#8C533C] flex items-center justify-between text-left transition-all group shadow-2xs"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-emerald-50 text-emerald-800 group-hover:bg-[#8C533C] group-hover:text-white transition-colors">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-[#2C221E] group-hover:text-[#8C533C] transition-colors">
+                      {t('blue.stories_full')}
+                    </div>
+                    <div className="text-[10px] text-[#7A7067]">
+                      {language === 'id' ? 'Filosofi ketelatenan tangan seniman' : 'Philosophy of handcrafted heritage'}
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#A89F95] group-hover:text-[#8C533C] group-hover:translate-x-0.5 transition-transform" />
+              </a>
 
-          {/* Navigation Links */}
-          <div className="pt-2 border-t border-[#E8DFD5] flex flex-col space-y-1 text-xs font-medium text-[#574E47]">
-            <a
-              href="#koleksi"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="py-2 px-3 rounded-lg hover:bg-[#F2EAE1] hover:text-[#2C221E] flex items-center justify-between transition-colors"
-            >
-              <span>Katalog Kriya Lengkap</span>
-              <ChevronRight className="w-3.5 h-3.5 text-[#7A7067]" />
-            </a>
-            <a
-              href="#galeri"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="py-2 px-3 rounded-lg hover:bg-[#F2EAE1] hover:text-[#2C221E] flex items-center justify-between transition-colors"
-            >
-              <span>Galeri Estetik & Lookbook Ruang</span>
-              <ChevronRight className="w-3.5 h-3.5 text-[#7A7067]" />
-            </a>
-            <a
-              href="#filosofi"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="py-2 px-3 rounded-lg hover:bg-[#F2EAE1] hover:text-[#2C221E] flex items-center justify-between transition-colors"
-            >
-              <span>Kisah & Etika Pengrajin</span>
-              <ChevronRight className="w-3.5 h-3.5 text-[#7A7067]" />
-            </a>
-            <a
-              href="#garansi"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="py-2 px-3 rounded-lg hover:bg-[#F2EAE1] hover:text-[#2C221E] flex items-center justify-between transition-colors"
-            >
-              <span>Garansi Aman & Ekspedisi Nusantara</span>
-              <ChevronRight className="w-3.5 h-3.5 text-[#7A7067]" />
-            </a>
+              {/* 4. Garansi Aman & Ekspedisi Nusantara */}
+              <a
+                href="#garansi"
+                onClick={() => setIsNavMenuOpen(false)}
+                className="p-3 bg-white hover:bg-[#FAF7F2] rounded-xl border border-[#E8DFD5] hover:border-[#8C533C] flex items-center justify-between text-left transition-all group shadow-2xs"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-purple-50 text-purple-800 group-hover:bg-[#8C533C] group-hover:text-white transition-colors">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-[#2C221E] group-hover:text-[#8C533C] transition-colors">
+                      {t('blue.shipping_full')}
+                    </div>
+                    <div className="text-[10px] text-[#7A7067]">
+                      {language === 'id' ? 'Garansi pecah belah 100% aman' : '100% Fragile safe shipping guarantee'}
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#A89F95] group-hover:text-[#8C533C] group-hover:translate-x-0.5 transition-transform" />
+              </a>
+            </div>
           </div>
         </div>
       )}

@@ -2,6 +2,7 @@ import React from 'react';
 import { Product } from '../types';
 import { formatIDR } from '../data/products';
 import { ShoppingBag, Heart, Star, Check, Store, PackageX } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ProductCardProps {
   product: Product;
@@ -18,6 +19,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onToggleWishlist,
   onSelectProduct,
 }) => {
+  const { language } = useLanguage();
   const [justAdded, setJustAdded] = React.useState(false);
   const isOutOfStock = product.stock <= 0;
 
@@ -66,10 +68,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] flex flex-col items-center justify-center p-3 text-center z-10">
             <div className="px-3 py-1 bg-red-600/95 text-white text-[11px] font-bold uppercase tracking-wider rounded-md shadow-md flex items-center gap-1.5">
               <PackageX className="w-3.5 h-3.5" />
-              <span>Stok Habis (0)</span>
+              <span>{language === 'en' ? 'Sold Out (0)' : 'Stok Habis (0)'}</span>
             </div>
             <span className="text-[10px] text-white/90 mt-1.5 font-medium drop-shadow-sm">
-              Foto diburamkan · Menunggu produksi pengrajin
+              {language === 'en'
+                ? 'Image blurred · Awaiting artisan crafting batch'
+                : 'Foto diburamkan · Menunggu produksi pengrajin'}
             </span>
           </div>
         )}
@@ -89,8 +93,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Wishlist Button */}
         <button
           onClick={handleWishlistClick}
-          aria-label={isWishlisted ? "Hapus dari wishlist" : "Tambah ke wishlist"}
-          className={`absolute top-2.5 right-2.5 z-20 p-2 rounded-full backdrop-blur-md transition-all ${
+          aria-label={isWishlisted ? (language === 'en' ? "Remove from wishlist" : "Hapus dari wishlist") : (language === 'en' ? "Add to wishlist" : "Tambah ke wishlist")}
+          className={`absolute top-2.5 right-2.5 z-20 p-2 rounded-full backdrop-blur-md transition-all cursor-pointer ${
             isWishlisted
               ? 'bg-[#8C533C] text-white shadow-sm'
               : 'bg-white/80 text-[#574E47] hover:text-[#8C533C] hover:bg-white'
@@ -104,7 +108,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
             <button
               onClick={handleQuickAdd}
-              className={`w-full py-2.5 px-3 text-xs font-semibold rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm ${
+              className={`w-full py-2.5 px-3 text-xs font-semibold rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer ${
                 justAdded
                   ? 'bg-[#3A4D39] text-white'
                   : 'bg-[#2C221E] hover:bg-[#8C533C] text-white active:scale-95'
@@ -113,12 +117,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {justAdded ? (
                 <>
                   <Check className="w-3.5 h-3.5" />
-                  <span>Masuk Keranjang!</span>
+                  <span>{language === 'en' ? 'Added to Cart!' : 'Masuk Keranjang!'}</span>
                 </>
               ) : (
                 <>
                   <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>+ Keranjang Cepat</span>
+                  <span>{language === 'en' ? '+ Quick Add' : '+ Keranjang Cepat'}</span>
                 </>
               )}
             </button>
@@ -141,7 +145,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div className="flex items-center gap-1.5 text-[11px] text-[#7A7067] mb-1.5">
             <span>{product.categoryLabel}</span>
             <span aria-hidden="true">·</span>
-            <span>oleh {product.artisan.name}</span>
+            <span>{language === 'en' ? 'by' : 'oleh'} {product.artisan.name}</span>
           </div>
 
           {/* Product Name */}
@@ -179,18 +183,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Baris Kode Barang & Jumlah Stock (Wajib Tampil Sesuai Permintaan) */}
           <div className="flex items-center justify-between pt-1 border-t border-dashed border-[#F2ECE3] text-[11px]">
             <div className="flex items-center gap-1 text-[#7A7067]">
-              <span className="text-[10px] text-[#A89F95]">Kode:</span>
+              <span className="text-[10px] text-[#A89F95]">{language === 'en' ? 'Code:' : 'Kode:'}</span>
               <span className="font-mono font-bold text-[#574E47]">#{product.productCode}</span>
             </div>
 
             <div>
               {isOutOfStock ? (
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">
-                  Stok: 0 (Habis)
+                  {language === 'en' ? 'Stock: 0 (Sold)' : 'Stok: 0 (Habis)'}
                 </span>
               ) : (
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  Stok: <strong className="ml-1 font-mono font-bold">{product.stock}</strong> unit
+                  {language === 'en' ? 'Stock:' : 'Stok:'}{' '}
+                  <strong className="ml-1 font-mono font-bold">{product.stock}</strong>{' '}
+                  {language === 'en' ? 'units' : 'unit'}
                 </span>
               )}
             </div>

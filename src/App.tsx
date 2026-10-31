@@ -56,6 +56,7 @@ import { AdminAuthGate } from './components/AdminAuthGate';
 import { ArtisanPortal } from './components/ArtisanPortal';
 import { Footer } from './components/Footer';
 import { Check, Heart } from 'lucide-react';
+import { useLanguage } from './context/LanguageContext';
 
 // One-time cleanup of mock demo data for user testing (reset customers, artisans, orders, chats)
 const FRESH_TEST_KEY = 'kala_kriya_test_reset_v3_clean';
@@ -94,6 +95,8 @@ if (typeof window !== 'undefined') {
 }
 
 export default function App() {
+  const { t, language } = useLanguage();
+
   // Subdomain & Path Detection for Admin:
   // Detects admin.dekorasiku.vercel.app, admin.localhost, /admin path, or ?admin=true
   const isSubdomainAdmin = typeof window !== 'undefined' && (
@@ -1649,13 +1652,17 @@ export default function App() {
       <div className="bg-[#2C221E] text-[#FAF7F2] text-[11px] sm:text-xs py-1.5 px-3 sm:px-4 text-center font-medium flex flex-wrap items-center justify-center gap-2 sm:gap-3 max-w-full overflow-hidden leading-tight">
         <div className="flex items-center gap-1.5 bg-[#1F1714] px-2.5 py-0.5 rounded-full border border-emerald-500/40 text-[10px]">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="text-emerald-300 font-semibold tracking-wide">Live Cloud Sync</span>
+          <span className="text-emerald-300 font-semibold tracking-wide">{t('live.cloud')}</span>
         </div>
-        <span>Gunakan kode promo</span>
+        <span>{language === 'en' ? 'Use promo code' : 'Gunakan kode promo'}</span>
         <span className="font-mono bg-[#43352F] text-[#FAF7F2] px-1.5 py-0.5 rounded font-bold tracking-wide">
           KRIYAHANGAT
         </span>
-        <span>diskon 10% · Gratis Ongkir min. Rp 350rb</span>
+        <span>
+          {language === 'en'
+            ? 'for 10% off · Free Shipping min. Rp 350k'
+            : 'diskon 10% · Gratis Ongkir min. Rp 350rb'}
+        </span>
       </div>
 
       {/* 3-Zone Navbar */}

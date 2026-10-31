@@ -15,4 +15,10 @@ console.error = (...args: unknown[]) => {
   }
 };
 
-createRoot(document.getElementById('root')!).render(<App />);
+import { LanguageProvider } from './context/LanguageContext';
+
+createRoot(document.getElementById('root')!).render(
+  <LanguageProvider>
+    <App />
+  </LanguageProvider>
+);

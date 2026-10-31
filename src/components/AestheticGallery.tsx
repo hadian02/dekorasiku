@@ -4,6 +4,8 @@ import { GALLERY_ITEMS, GALLERY_CATEGORIES } from '../data/gallery';
 import { formatIDR } from '../data/products';
 import { Heart, Maximize2, X, ChevronLeft, ChevronRight, ShoppingBag, Sparkles } from 'lucide-react';
 
+import { useLanguage } from '../context/LanguageContext';
+
 interface AestheticGalleryProps {
   products: Product[];
   onSelectProduct: (product: Product) => void;
@@ -15,6 +17,7 @@ export const AestheticGallery: React.FC<AestheticGalleryProps> = ({
   onSelectProduct,
   onAddToCart,
 }) => {
+  const { language } = useLanguage();
   const [activeCategory, setActiveCategory] = useState<string>('semua');
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
   const [likedGalleryIds, setLikedGalleryIds] = useState<Record<string, boolean>>({});
@@ -49,6 +52,18 @@ export const AestheticGallery: React.FC<AestheticGalleryProps> = ({
     }
   };
 
+  const getGalleryCategoryLabel = (id: string, defaultLabel: string) => {
+    if (language !== 'en') return defaultLabel;
+    switch (id) {
+      case 'semua': return 'All Inspiration';
+      case 'sudut_santai': return 'Cozy Corner';
+      case 'meja_kopi': return 'Coffee Table';
+      case 'dapur': return 'Kitchen & Dining';
+      case 'tanaman': return 'Balcony & Greenery';
+      default: return defaultLabel;
+    }
+  };
+
   return (
     <section id="galeri" className="py-14 lg:py-22 bg-[#F5EFEB] border-y border-[#E8DFD5] scroll-mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -57,13 +72,15 @@ export const AestheticGallery: React.FC<AestheticGalleryProps> = ({
           <div>
             <div className="text-xs font-semibold text-[#8C533C] tracking-widest uppercase mb-1.5 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Inspirasi Ruang & Lookbook</span>
+              <span>{language === 'en' ? 'Room Inspiration & Lookbook' : 'Inspirasi Ruang & Lookbook'}</span>
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-medium text-[#2C221E] tracking-tight">
-              Galeri Foto Estetik & Kehangatan Ruang
+              {language === 'en' ? 'Aesthetic Gallery & Warmth of Living Spaces' : 'Galeri Foto Estetik & Kehangatan Ruang'}
             </h2>
             <p className="text-sm text-[#7A7067] mt-1.5 max-w-2xl leading-relaxed">
-              Lihat bagaimana karya kerajinan tangan kami menghadirkan nuansa hangat, tenteram, dan bersahaja dalam berbagai sudut rumah Anda.
+              {language === 'en'
+                ? 'Discover how our handcrafted creations infuse serene, soulful warmth into every corner of your home.'
+                : 'Lihat bagaimana karya kerajinan tangan kami menghadirkan nuansa hangat, tenteram, dan bersahaja dalam berbagai sudut rumah Anda.'}
             </p>
           </div>
 
@@ -75,13 +92,13 @@ export const AestheticGallery: React.FC<AestheticGalleryProps> = ({
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap shrink-0 border ${
+                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap shrink-0 border cursor-pointer ${
                     isActive
                       ? 'bg-[#2C221E] text-white border-[#2C221E]'
                       : 'bg-white/80 text-[#61574F] border-[#E8DFD5] hover:bg-white hover:text-[#2C221E]'
                   }`}
                 >
-                  {cat.label}
+                  {getGalleryCategoryLabel(cat.id, cat.label)}
                 </button>
               );
             })}

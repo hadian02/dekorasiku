@@ -18,6 +18,8 @@ import {
   Layers
 } from 'lucide-react';
 
+import { useLanguage } from '../context/LanguageContext';
+
 interface ProductDetailModalProps {
   product: Product | null;
   isWishlisted: boolean;
@@ -28,13 +30,15 @@ interface ProductDetailModalProps {
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
-  product,
+  product: rawProduct,
   isWishlisted,
   onClose,
   onAddToCart,
   onBuyNow,
   onToggleWishlist,
 }) => {
+  const { language, translateProduct } = useLanguage();
+  const product = rawProduct ? translateProduct(rawProduct) : null;
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'care' | 'code'>('desc');

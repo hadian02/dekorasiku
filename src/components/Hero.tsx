@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowDown, Sparkles, ShieldCheck, Leaf, HeartHandshake } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface HeroProps {
   onExploreClick: () => void;
@@ -7,6 +8,8 @@ interface HeroProps {
 }
 
 export const Hero: React.FC<HeroProps> = ({ onExploreClick, onGalleryClick }) => {
+  const { t, language } = useLanguage();
+
   return (
     <section className="relative overflow-hidden pt-8 pb-14 lg:pt-14 lg:pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -15,42 +18,42 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onGalleryClick }) =>
           {/* Column 1: Editorial Brand Message */}
           <div className="lg:col-span-6 flex flex-col items-start">
             <div className="text-xs font-semibold text-[#8C533C] tracking-widest uppercase mb-4">
-              Kurasi Kriya Nusantara · Sejak 2021
+              {t('hero.tag')}
             </div>
 
             <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-[#2C221E] leading-[1.18] mb-6 text-balance">
-              Kerajinan tangan berjiwa, menghangatkan sudut rumah Anda.
+              {t('hero.title')}
             </h1>
 
             <p className="text-base sm:text-lg text-[#61574F] leading-relaxed mb-8 max-w-xl">
-              Setiap cangkir tembikar, anyaman serat laut, dan baki kayu jati dibentuk dengan ketelatenan tangan pengrajin lokal nusantara. Menghadirkan ketenangan alami dalam setiap momen santai di rumah.
+              {t('hero.subtitle')}
             </p>
 
             <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
               <button
                 onClick={onExploreClick}
-                className="w-full sm:w-auto px-7 py-3.5 bg-[#8C533C] hover:bg-[#73432F] text-white font-medium text-sm rounded-lg shadow-sm hover:shadow transition-all flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-7 py-3.5 bg-[#8C533C] hover:bg-[#73432F] text-white font-medium text-sm rounded-lg shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Jelajahi Koleksi</span>
+                <span>{t('hero.cta_explore')}</span>
                 <ArrowDown className="w-4 h-4 animate-bounce" />
               </button>
               
               <button
                 onClick={onGalleryClick}
-                className="w-full sm:w-auto px-6 py-3.5 bg-[#F2EAE1] hover:bg-[#E8DFD5] text-[#2C221E] font-medium text-sm rounded-lg transition-colors flex items-center justify-center gap-2 border border-[#E0D5C9]"
+                className="w-full sm:w-auto px-6 py-3.5 bg-[#F2EAE1] hover:bg-[#E8DFD5] text-[#2C221E] font-medium text-sm rounded-lg transition-colors flex items-center justify-center gap-2 border border-[#E0D5C9] cursor-pointer"
               >
-                <span>Lihat Galeri Estetik</span>
+                <span>{t('hero.cta_gallery')}</span>
                 <Sparkles className="w-4 h-4 text-[#8C533C]" />
               </button>
             </div>
 
             {/* Quiet Curator Note */}
             <div className="mt-8 pt-6 border-t border-[#E8DFD5] flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-[#7A7067]">
-              <span className="font-semibold text-[#2C221E]">420+ Karya Terkurasi</span>
+              <span className="font-semibold text-[#2C221E]">{t('hero.stat_curated')}</span>
               <span aria-hidden="true" className="hidden xs:inline">·</span>
-              <span>18 Komunitas Pengrajin</span>
+              <span>{t('hero.stat_artisans')}</span>
               <span aria-hidden="true" className="hidden xs:inline">·</span>
-              <span>100% Kemasan Ramah Lingkungan</span>
+              <span>{t('hero.stat_eco')}</span>
             </div>
           </div>
 
@@ -70,14 +73,14 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onGalleryClick }) =>
               <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-md p-4 rounded-xl border border-[#E8DFD5]/80 flex items-center justify-between">
                 <div>
                   <div className="text-xs text-[#8C533C] font-semibold tracking-wide">
-                    BENGKEL BANTUL & TASIKMALAYA
+                    {t('hero.workshop_tag')}
                   </div>
                   <div className="text-sm font-serif font-bold text-[#2C221E]">
-                    Sentuhan Tangan, Bukan Mesin Pabrik
+                    {t('hero.workshop_title')}
                   </div>
                 </div>
                 <span className="text-xs text-[#61574F] bg-[#FAF7F2] px-2.5 py-1 rounded border border-[#E8DFD5]">
-                  Edisi Musim Gugur
+                  {t('hero.autumn_edition')}
                 </span>
               </div>
             </div>
@@ -91,9 +94,9 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onGalleryClick }) =>
               <HeartHandshake className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-sm font-bold text-[#2C221E]">Karya Asli Pengrajin</div>
+              <div className="text-sm font-bold text-[#2C221E]">{t('trust.authentic')}</div>
               <div className="text-xs text-[#7A7067] mt-0.5 leading-relaxed">
-                Langsung dari tangan seniman kriya lokal nusantara.
+                {t('trust.authentic_desc')}
               </div>
             </div>
           </div>
@@ -103,9 +106,9 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onGalleryClick }) =>
               <Leaf className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-sm font-bold text-[#2C221E]">Bahan Alami & Lestari</div>
+              <div className="text-sm font-bold text-[#2C221E]">{t('trust.natural')}</div>
               <div className="text-xs text-[#7A7067] mt-0.5 leading-relaxed">
-                Tanah liat, serat lamun, dan jati tanpa zat kimia beracun.
+                {t('trust.natural_desc')}
               </div>
             </div>
           </div>
@@ -115,9 +118,9 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onGalleryClick }) =>
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-sm font-bold text-[#2C221E]">Garansi Ganti Pecah</div>
+              <div className="text-sm font-bold text-[#2C221E]">{t('trust.guarantee')}</div>
               <div className="text-xs text-[#7A7067] mt-0.5 leading-relaxed">
-                Kemasan pelindung ekstra, gratis ganti baru bila retak saat kirim.
+                {t('trust.guarantee_desc')}
               </div>
             </div>
           </div>
@@ -127,9 +130,9 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, onGalleryClick }) =>
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-sm font-bold text-[#2C221E]">Kurasi Estetik Cozy</div>
+              <div className="text-sm font-bold text-[#2C221E]">{t('trust.fair')}</div>
               <div className="text-xs text-[#7A7067] mt-0.5 leading-relaxed">
-                Setiap item dirancang untuk menciptakan kehangatan ruang.
+                {t('trust.fair_desc')}
               </div>
             </div>
           </div>
