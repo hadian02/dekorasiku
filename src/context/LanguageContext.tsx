@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product } from '../types';
+import React, { createContext, useContext, useState } from 'react';
+import { Product, Artisan } from '../types';
 
 export type Language = 'id' | 'en';
 
@@ -8,7 +8,80 @@ interface LanguageContextType {
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
   translateProduct: (product: Product) => Product;
+  getMaterialHexLabel: (hex: string) => string;
 }
+
+// English artisan profile translations
+export const ARTISAN_TRANSLATIONS: Record<
+  string,
+  {
+    name?: string;
+    workshopName?: string;
+    location?: string;
+    bio: string;
+  }
+> = {
+  'artisan-01': {
+    workshopName: 'Studio Tembikar Sekar Bumi',
+    name: 'Wayan Sujana',
+    location: 'Kasongan, Bantul, D.I. Yogyakarta, Indonesia',
+    bio: 'Third-generation pottery artisan blending local volcanic clay with traditional wood-fired kiln firing techniques.',
+  },
+  'Wayan Sujana': {
+    workshopName: 'Studio Tembikar Sekar Bumi',
+    name: 'Wayan Sujana',
+    location: 'Kasongan, Bantul, D.I. Yogyakarta, Indonesia',
+    bio: 'Third-generation pottery artisan blending local volcanic clay with traditional wood-fired kiln firing techniques.',
+  },
+  'artisan-02': {
+    workshopName: 'Sentra Anyam Ratna Kreasi',
+    name: 'Mrs. Ratna & Weaver Collective',
+    location: 'Tasikmalaya, West Java, Indonesia',
+    bio: 'Weaving hand-selected pandan and marine seagrass fibers from the southern coast with ancestral heritage precision.',
+  },
+  'Ibu Ratna & Kelompok Penganyam': {
+    workshopName: 'Sentra Anyam Ratna Kreasi',
+    name: 'Mrs. Ratna & Weaver Collective',
+    location: 'Tasikmalaya, West Java, Indonesia',
+    bio: 'Weaving hand-selected pandan and marine seagrass fibers from the southern coast with ancestral heritage precision.',
+  },
+  'artisan-03': {
+    workshopName: 'Sanggar Ukir Jati Abadi',
+    name: 'Mr. Joko Santoso',
+    location: 'Jepara, Central Java, Indonesia',
+    bio: 'Master woodcarver specializing in reclaimed mature teakwood with golden grain lines built to endure for decades.',
+  },
+  'Pak Joko Santoso': {
+    workshopName: 'Sanggar Ukir Jati Abadi',
+    name: 'Mr. Joko Santoso',
+    location: 'Jepara, Central Java, Indonesia',
+    bio: 'Master woodcarver specializing in reclaimed mature teakwood with golden grain lines built to endure for decades.',
+  },
+  'artisan-04': {
+    workshopName: 'Citra Aroma Botanical Studio',
+    name: 'Citra Kirana',
+    location: 'Ubud, Bali, Indonesia',
+    bio: 'Botanical perfumer blending pure tropical essential oils into handcrafted earthenware vessels.',
+  },
+  'Citra Kirana': {
+    workshopName: 'Citra Aroma Botanical Studio',
+    name: 'Citra Kirana',
+    location: 'Ubud, Bali, Indonesia',
+    bio: 'Botanical perfumer blending pure tropical essential oils into handcrafted earthenware vessels.',
+  },
+  'artisan-05': {
+    workshopName: 'Tenun Canting Maryam',
+    name: 'Mrs. Maryam',
+    location: 'Pekalongan, Central Java, Indonesia',
+    bio: 'Pioneer of double-cross weaving techniques using traditional non-machine looms (ATBM) with natural mahogany bark dyes.',
+  },
+  'Ibu Maryam': {
+    workshopName: 'Tenun Canting Maryam',
+    name: 'Mrs. Maryam',
+    location: 'Pekalongan, Central Java, Indonesia',
+    bio: 'Pioneer of double-cross weaving techniques using traditional non-machine looms (ATBM) with natural mahogany bark dyes.',
+  },
+};
 
 // English product metadata translations
 const PRODUCT_TRANSLATIONS: Record<
@@ -68,26 +141,26 @@ const PRODUCT_TRANSLATIONS: Record<
     tag: 'Best Seller',
   },
   'kriya-05': {
-    name: 'Earthy Ochre Ribbed Ceramic Teapot',
+    name: 'Plant-Dyed Ramie & Cool Cotton Throw Blanket',
     description:
-      'Hand-pinched ceramic teapot inspired by tropical terracotta warmth. Features an ergonomic hollow handle and stainless steel mesh filter.',
-    categoryLabel: 'Ceramics & Pottery',
-    materials: ['Volcanic Terracotta Clay', 'Natural Wood Ash Glaze'],
-    dimensions: 'Height 14 cm × Diameter 12 cm (Capacity ±600 ml)',
+      'Breathable blanket and throw woven on traditional handlooms from natural ramie and combed cotton, naturally dyed with plant extracts.',
+    categoryLabel: 'Textiles & Handloom',
+    materials: ['60% Combed Natural Cotton', '40% Natural Ramie Fiber'],
+    dimensions: '140 cm × 200 cm (with neat fringed edges)',
     careGuide:
-      'Rinse with warm water after brewing. Avoid abrasive scrubbers to protect the textured surface.',
-    tag: 'Limited Edition',
+      'Gentle hand wash with cold water. Avoid harsh bleach and dry in the shade.',
+    tag: 'Traditional Handloom',
   },
   'kriya-06': {
-    name: 'Handwoven Plant Dye Ikat Runner Cloth',
+    name: 'Salted-Egg Glazed Asymmetric Ceramic Serving Bowl',
     description:
-      'Handloom table runner woven using organic cotton threads and naturally dyed with indigo leaf and mahogany bark extracts.',
-    categoryLabel: 'Textiles & Handloom',
-    materials: ['100% Organic Handspun Cotton', 'Natural Plant Extracts (Indigo & Mahogany)'],
-    dimensions: 'Length 180 cm × Width 35 cm (excluding fringe)',
+      'Wide-lipped ceramic serving bowl with subtle organic asymmetry. Perfect for warm hearty soups, garden salads, or seasonal fruit displays.',
+    categoryLabel: 'Ceramics & Pottery',
+    materials: ['Volcanic Red Earthenware Clay (1250°C)', 'Natural Coconut Shell Ash Glaze'],
+    dimensions: 'Diameter 19 cm × Depth 6.5 cm',
     careGuide:
-      'Hand wash gently with cold water using mild eco-friendly detergent. Dry in the shade.',
-    tag: "Curator's Choice",
+      'Food-safe for hot and saucy dishes. Hand wash with a mild eco-friendly dish soap.',
+    tag: 'Dining Table Craft',
   },
   'kriya-07': {
     name: 'Miniature Sungkai Wood Sculptural Stool',
@@ -250,6 +323,7 @@ const LanguageContext = createContext<LanguageContextType>({
   setLanguage: () => {},
   t: (key) => key,
   translateProduct: (p) => p,
+  getMaterialHexLabel: () => '',
 });
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -277,43 +351,165 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return language === 'en' ? entry.en : entry.id;
   };
 
+  const getMaterialHexLabel = (hex: string): string => {
+    const clean = (hex || '').trim().toUpperCase();
+    if (language === 'en') {
+      switch (clean) {
+        case '01': return 'Kasongan Earthenware & Ceramics';
+        case '02': return 'Natural Fibers & Seagrass Weaving';
+        case '03': return 'Solid Teak Wood & Carving';
+        case '04': return 'Organic Soy Wax & Spiced Oils';
+        case '05': return 'Natural Ramie & Handloom Cotton';
+        case '06': return 'Forged Brass & Metalwork';
+        case '07': return 'Natural Stone & River Andesite';
+        case '08': return 'Vegetable-Tanned Leather';
+        case '0A': return 'Composite & Mixed Eco-Materials';
+        default: return `Material Code #${clean}`;
+      }
+    } else {
+      switch (clean) {
+        case '01': return 'Tanah Liat & Keramik Kasongan';
+        case '02': return 'Serat Alami & Anyaman Lamun';
+        case '03': return 'Kayu Jati Solid & Pahat Jepara';
+        case '04': return 'Lilin Kedelai & Rempah Herbal';
+        case '05': return 'Serat Rami & Tenun Canting';
+        case '06': return 'Kuningan & Logam Tempa';
+        case '07': return 'Batu Alam & Andesit';
+        case '08': return 'Kulit Nabati Alami';
+        case '0A': return 'Material Campuran / Komposit';
+        default: return `Bahan Hex #${clean}`;
+      }
+    }
+  };
+
   const translateProduct = (product: Product): Product => {
     if (language !== 'en') return product;
 
+    let translatedArtisan = product.artisan;
+    if (product.artisan) {
+      const artId = product.artisan.id;
+      const artName = product.artisan.name;
+      const artTr =
+        (artId ? ARTISAN_TRANSLATIONS[artId] : undefined) ||
+        (artName ? ARTISAN_TRANSLATIONS[artName] : undefined);
+      if (artTr) {
+        translatedArtisan = {
+          ...product.artisan,
+          name: artTr.name || product.artisan.name,
+          workshopName: artTr.workshopName || product.artisan.workshopName,
+          location: artTr.location || product.artisan.location,
+          bio: artTr.bio || product.artisan.bio,
+        };
+      } else {
+        // Fallback for custom artisan bios
+        let engBio = product.artisan.bio;
+        if (engBio.includes('Pengrajin tembikar generasi ketiga') || engBio.includes('tanah liat')) {
+          engBio = 'Third-generation pottery artisan blending local volcanic clay with traditional wood-fired kiln firing techniques.';
+        } else if (engBio.includes('Menganyam') || engBio.includes('seagrass')) {
+          engBio = 'Weaving hand-selected natural plant and seagrass fibers with ancestral heritage precision.';
+        } else if (engBio.includes('pahat') || engBio.includes('kayu')) {
+          engBio = 'Master woodcarver specializing in reclaimed mature teakwood with golden grain lines built to endure for decades.';
+        } else if (engBio.includes('wewangian') || engBio.includes('lilin')) {
+          engBio = 'Botanical perfumer blending pure tropical essential oils into handcrafted earthenware vessels.';
+        } else if (engBio.includes('tenun')) {
+          engBio = 'Pioneer of traditional handloom weaving techniques with natural botanical dyes.';
+        }
+        translatedArtisan = {
+          ...product.artisan,
+          bio: engBio,
+        };
+      }
+    }
+
     const tr = PRODUCT_TRANSLATIONS[product.id];
-    if (!tr) {
-      // Dynamic translated fallback for newly published products
+    if (tr) {
       return {
         ...product,
-        categoryLabel:
-          product.category === 'keramik'
-            ? 'Ceramics & Pottery'
-            : product.category === 'anyaman'
-            ? 'Weaving & Natural Fibers'
-            : product.category === 'kayu'
-            ? 'Woodcraft & Mini Furniture'
-            : product.category === 'tekstil'
-            ? 'Textiles & Handloom'
-            : product.category === 'aromaterapi'
-            ? 'Aromatherapy & Candles'
-            : product.categoryLabel,
+        name: tr.name,
+        description: tr.description,
+        categoryLabel: tr.categoryLabel,
+        materials: tr.materials,
+        dimensions: tr.dimensions,
+        careGuide: tr.careGuide,
+        tag: tr.tag || product.tag,
+        artisan: translatedArtisan,
       };
+    }
+
+    // Dynamic translated fallback for user-submitted proposals (like "Pigura", "Bingkai", etc.)
+    const categoryEn =
+      product.category === 'keramik'
+        ? 'Ceramics & Pottery'
+        : product.category === 'anyaman'
+        ? 'Weaving & Natural Fibers'
+        : product.category === 'kayu'
+        ? 'Woodcraft & Mini Furniture'
+        : product.category === 'tekstil'
+        ? 'Textiles & Handloom'
+        : product.category === 'aromaterapi'
+        ? 'Aromatherapy & Candles'
+        : product.categoryLabel;
+
+    // Name translation fallback
+    let nameEn = product.name;
+    const lowerName = product.name.toLowerCase();
+    if (lowerName === 'pigura' || lowerName === 'bingkai') {
+      nameEn = 'Handcrafted Wooden Picture Frame';
+    } else if (lowerName.includes('pigura') || lowerName.includes('bingkai')) {
+      nameEn = product.name.replace(/pigura/gi, 'Picture Frame').replace(/bingkai/gi, 'Frame');
+    } else if (lowerName.includes('cangkir') || lowerName.includes('mug')) {
+      nameEn = 'Handcrafted Ceramic Cup';
+    } else if (lowerName.includes('keranjang')) {
+      nameEn = 'Natural Woven Storage Basket';
+    } else if (lowerName.includes('baki')) {
+      nameEn = 'Solid Teak Serving Tray';
+    } else if (lowerName.includes('lilin')) {
+      nameEn = 'Aromatic Soy Wax Candle';
+    }
+
+    // Description translation fallback
+    let descEn = product.description;
+    const lowerDesc = product.description.toLowerCase();
+    if (lowerDesc.includes('susah banget') || lowerDesc.includes('rumit')) {
+      descEn = 'Exquisitely detailed piece crafted with immense dedication, patient technique, and delicate handmade precision.';
+    } else if (lowerDesc.includes('sangat cantik') || lowerDesc.includes('cantik')) {
+      descEn = 'Beautifully crafted artisanal piece made with care to bring organic warmth to your home interior.';
+    } else if (lowerDesc.length < 30) {
+      descEn = `${product.description} · Lovingly hand-shaped in limited small batches by Indonesian craft masters.`;
+    }
+
+    // Materials translation fallback
+    const materialsEn = (product.materials && product.materials.length > 0)
+      ? product.materials.map((m) => {
+          const lm = m.toLowerCase();
+          if (lm.includes('kayu') || lm.includes('jati')) return 'Solid Aged Teak Wood';
+          if (lm.includes('tanah liat') || lm.includes('keramik')) return 'Kasongan Earthenware Clay';
+          if (lm.includes('anyam') || lm.includes('rotan') || lm.includes('seagrass')) return 'Natural Seagrass & Rattan';
+          if (lm.includes('lilin') || lm.includes('kedelai')) return '100% Organic Soy Wax';
+          if (lm.includes('katun') || lm.includes('rami')) return 'Natural Cotton & Ramie Fiber';
+          return m;
+        })
+      : ['Selected Natural Eco-Friendly Materials'];
+
+    // Care guide translation fallback
+    let careGuideEn = product.careGuide || '';
+    if (!careGuideEn || careGuideEn.toLowerCase().includes('bersihkan') || careGuideEn.toLowerCase().includes('cuci')) {
+      careGuideEn = 'Wipe gently with a soft microfibre cloth. Avoid soaking in water and store in a dry, well-ventilated space.';
     }
 
     return {
       ...product,
-      name: tr.name,
-      description: tr.description,
-      categoryLabel: tr.categoryLabel,
-      materials: tr.materials,
-      dimensions: tr.dimensions,
-      careGuide: tr.careGuide,
-      tag: tr.tag || product.tag,
+      name: nameEn,
+      description: descEn,
+      categoryLabel: categoryEn,
+      materials: materialsEn,
+      careGuide: careGuideEn,
+      artisan: translatedArtisan,
     };
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, translateProduct }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, translateProduct, getMaterialHexLabel }}>
       {children}
     </LanguageContext.Provider>
   );
